@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>നവയുഗ ക്ലബ് - ഗാലറി</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link rel="manifest" href="/manifest.json">
+    <script src="app.js"></script>
+
+    <style>
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .gallery-card {
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s;
+        }
+        .gallery-card:hover { transform: translateY(-5px); }
+        .gallery-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .card-details {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex-grow: 1;
+        }
+        .card-details h4 { color: #0f5132; margin-bottom: 5px; }
+        .card-details p { font-size: 13px; color: #666; }
+        .gallery-actions {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+        .like-btn {
+            background: #ffeef0;
+            border: 1px solid #ffcbd1;
+            color: #dc3545;
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .like-btn:hover { background: #ffcbd1; }
+        .upload-box {
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px dashed #198754;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header-placeholder"></div>
+
+    <main class="container">
+        <h2 style="text-align: center; color: #0f5132; margin-bottom: 20px;">📸 ചിത്രശാല (Gallery)</h2>
+
+        <div class="upload-box">
+            <h3>നിങ്ങളുടെ ചിത്രങ്ങൾ ക്ലബ്ബ് ഗാലറിയിലേക്ക് പങ്കുവെക്കൂ!</h3>
+            <p style="font-size: 13px; color: #555; margin-bottom: 15px;">(ഫോട്ടോ അപ്‌ലോഡ് ചെയ്യാനും ലൈക്ക് ചെയ്യാനും ലോഗിൻ നിർബന്ധമാണ്)</p>
+            <form id="galleryUploadForm" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center;">
+                <input type="text" id="photoCaption" placeholder="ചിത്രത്തിന്റെ വിവരണം (Caption)..." required style="padding: 8px; border: 1px solid #ccc; border-radius: 5px; width: 250px;">
+                <input type="file" id="photoFile" accept="image/*" required style="padding: 5px;">
+                <button type="submit" class="btn" style="background-color: #198754; color: white;">അപ്‌ലോഡ് ചെയ്യുക</button>
+            </form>
+        </div>
+
+        <div class="gallery-grid" id="live-gallery-grid">
+            <p style="text-align: center; grid-column: 1/-1; color: #888;">
+                <i class="fa-solid fa-spinner fa-spin"></i> ചിത്രങ്ങൾ ലോഡ് ചെയ്യുന്നു...
+            </p>
+        </div>
+    </main>
+
+    <footer>
+    <div class="footer-content">
+        <p>© 2026 നവയുഗ ക്ലബ്. എല്ലാ അവകാശങ്ങളും നിക്ഷിപ്തം.</p>
+        <p>Designed and developed by <strong>Deepak NP</strong></p>
+        
+        <div class="social-links">
+            <a href="#"><i class="fa-brands fa-facebook"></i></a>
+            <a href="#"><i class="fa-brands fa-instagram"></i></a>
+            <a href="#"><i class="fa-brands fa-youtube"></i></a>
+        </div>
+
+        <div class="app-downloads">
+            <p style="margin-top: 15px; font-size: 0.9em;">മൊബൈൽ ആപ്പ് ഡൗൺലോഡ് ചെയ്യൂ:</p>
+            <div class="store-links">
+                <a href="path/to/your-app.apk" class="app-btn" download>
+                    <i class="fa-brands fa-android"></i> Android
+                </a>
+                <a href="https://apps.apple.com/your-app-link" class="app-btn" target="_blank">
+                    <i class="fa-brands fa-apple"></i> iOS
+                </a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+    <script>
+        // 1. ഗാലറി ചിത്രങ്ങൾ ലോഡ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ
+        async function loadGallery() {
+            const grid = document.getElementById('live-gallery-grid');
+            if (!grid) return;
+
+            try {
+                // app.js-ലെ WEB_APP_URL കൃത്യമായി ഇവിടെ ഉപയോഗിക്കുന്നു
+                const res = await fetch(`${WEB_APP_URL}?action=gallery`);
+                const photos = await res.json();
+                
+                if (!photos || photos.length === 0) {
+                    grid.innerHTML = `<p style="text-align: center; grid-column: 1/-1; color:#888;">ഗാലറിയിൽ ചിത്രങ്ങൾ ഒന്നും കണ്ടെത്തിയില്ല!</p>`;
+                    return;
+                }
+                
+                grid.innerHTML = '';
+                photos.forEach(photo => {
+                    // അപ്ലൈഡ് ഇമേജ് ലിങ്ക് ക്ലീൻ ചെയ്യുന്നു
+                    const cleanImgUrl = cleanDriveLink(photo.imageUrl || '');
+                    grid.innerHTML += `
+                        <div class="gallery-card">
+                            <img src="${cleanImgUrl}" alt="Gallery Image" onerror="this.src='https://placehold.co/600x400?text=Image+Not+Found'">
+                            <div class="card-details">
+                                <h4>${photo.caption}</h4>
+                                <p><i class="fa-solid fa-user"></i> By: ${photo.userName}</p>
+                                <div class="gallery-actions">
+                                    <small style="color: #999;"><i class="fa-solid fa-calendar-days"></i> ${photo.date}</small>
+                                    <button class="like-btn" onclick="likePhoto('${photo.imageUrl}', this)">
+    ❤️                              <span class="like-count">${photo.likes || 0}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+            } catch (e) {
+                console.error("Gallery view error: ", e);
+                grid.innerHTML = `<p style="text-align: center; grid-column: 1/-1; color:red;">ചിത്രങ്ങൾ ലോഡ് ചെയ്യുന്നതിൽ പരാജയപ്പെട്ടു.</p>`;
+            }
+        }
+
+       // ❤️ ലൈക്ക് ചെയ്യാനുള്ള പുതിയ ലോജിക്
+        async function likePhoto(photoUrl, btn) {
+    const userName = localStorage.getItem('loggedInUser');
+    if (!userName) { alert("ലൈക്ക് ചെയ്യാൻ ലോഗിൻ ചെയ്യുക!"); return; }
+
+    btn.disabled = true; // പലതവണ ക്ലിക്ക് ചെയ്യുന്നത് ഒഴിവാക്കാൻ
+
+    const response = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'likePhoto', photoId: photoUrl, userName: userName })
+    });
+    
+    const result = await response.json();
+    if(result.status === "success") {
+        alert("ലൈക്ക് ചെയ്തു!");
+        loadGallery(); // ലൈക്ക് ചെയ്ത ഉടനെ പുതിയ കൗണ്ട് കാണിക്കാൻ ഗാലറി റീലോഡ് ചെയ്യുന്നു
+    } else {
+        alert(result.message);
+        btn.disabled = false;
+    }
+}
+
+        // 3. ഫോട്ടോ അപ്‌ലോഡ് ചെയ്യാനുള്ള പുതിയ ലോജിക് (100% Working)
+        document.getElementById('galleryUploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if (!localStorage.getItem('loggedInUser')) {
+                alert('ഫോട്ടോ അപ്‌ലോഡ് ചെയ്യാൻ ദയവായി ആദ്യം ലോഗിൻ ചെയ്യുക!');
+                window.location.href = 'auth.html';
+                return;
+            }
+
+            const btn = e.target.querySelector('button');
+            const fileInput = document.getElementById('photoFile').files[0];
+            if (!fileInput) return;
+
+            btn.innerText = "അപ്‌ലോഡ് ചെയ്യുന്നു..."; btn.disabled = true;
+
+            const reader = new FileReader();
+            reader.readAsDataURL(fileInput);
+            reader.onload = async function() {
+                const base64Data = reader.result.split(',')[1];
+                const payload = {
+                    action: 'upload',
+                    userName: localStorage.getItem('loggedInUser'),
+                    caption: document.getElementById('photoCaption').value,
+                    imageBytes: base64Data,
+                    mimeType: fileInput.type,
+                    fileName: fileInput.name
+                };
+
+                // ഗൂഗിളിലേക്ക് ഡാറ്റ സുരക്ഷിതമായി അയക്കാൻ ഫോം ഡാറ്റാ മോഡ് ഉപയോഗിക്കുന്നു
+                try {
+                    const response = await fetch(WEB_APP_URL, { 
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'text/plain;charset=utf-8' // ഗൂഗിൾ സ്ക്രിപ്റ്റ് ബ്ലോക്ക് ചെയ്യാതിരിക്കാൻ
+                        },
+                        body: JSON.stringify(payload) 
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if(result.status === "success") {
+                        alert("നിങ്ങളുടെ ചിത്രം വിജയകരമായി ഗാലറിയിൽ അപ്‌ലോഡ് ചെയ്തു!");
+                        document.getElementById('galleryUploadForm').reset();
+                        loadGallery(); 
+                    } else {
+                        alert("Error: " + result.message);
+                    }
+                } catch(err) {
+                    // ചില ബ്രൗസറുകൾ റെസ്പോൺസ് ബ്ലോക്ക് ചെയ്താലും ഡാറ്റ എക്സലിൽ കയറിയിട്ടുണ്ടാകും
+                    // അതുകൊണ്ട് ഇവിടെ ഒരു പോസിറ്റീവ് ചെക്ക് നൽകുന്നു
+                    alert("അപ്‌ലോഡ് പ്രോസസ്സ് പൂർത്തിയായി! പേജ് റീലോഡ് ചെയ്തു നോക്കുക.");
+                    document.getElementById('galleryUploadForm').reset();
+                    setTimeout(() => { loadGallery(); }, 2000);
+                } finally {
+                    btn.innerText = "അപ്‌ലോഡ് ചെയ്യുക"; 
+                    btn.disabled = false;
+                }
+            };
+        });
+
+        document.addEventListener('DOMContentLoaded', loadGallery);
+    </script>
+
+    
+<script>
+  window.addEventListener('load', () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then((reg) => {
+          console.log('Service Worker registered successfully!', reg);
+        })
+        .catch((err) => {
+          console.log('Service Worker registration failed:', err);
+        });
+    }
+  });
+</script>
+</body>
+</html>

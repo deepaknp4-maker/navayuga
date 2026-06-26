@@ -1,0 +1,436 @@
+/* ==========================================
+   1. ജനറൽ ലേഔട്ട് സെറ്റിങ്സ് (General Setup)
+   ========================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f4f7f6;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.container {
+    width: 90%;
+    max-width: 1100px;
+    margin: 30px auto;
+}
+
+/* ==========================================
+   2. മോഡേൺ ഹെഡർ & മെനു (Modern Header Setup)
+   ========================================== */
+header {
+    background-color: #0f5132;
+    color: white;
+    padding: 12px 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+header .logo {
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ഡെസ്ക്ടോപ്പ് മെനു ലിങ്കുകൾ */
+nav {
+    display: flex;
+    align-items: center;
+}
+
+nav a {
+    color: #cbd5e1;
+    text-decoration: none;
+    margin: 0 12px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: color 0.3s, border-color 0.3s;
+}
+
+nav a:hover, nav a.active {
+    color: #ffffff;
+    border-bottom: 2px solid #fff;
+    padding-bottom: 4px;
+}
+
+/* 🔐 ഓട്ടോമേഷൻ സോൺ (User Profile & Login Zone) */
+.header-auth-zone {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-profile {
+    background: #198754;
+    padding: 6px 14px;
+    border-radius: 5px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+/* ഹാംബർഗർ ഐക്കൺ (മൊബൈലിൽ മാത്രം വരുന്നത്) */
+.menu-toggle {
+    display: none;
+    font-size: 22px;
+    color: white;
+    cursor: pointer;
+}
+
+/* ==========================================
+   3. ഹോം പേജ് ഹീറോ സ്ലൈഡർ (Hero Slider)
+   ========================================== */
+.hero-slider {
+    width: 100%;
+    height: 360px;
+    position: relative;
+    overflow: hidden;
+}
+
+.slide {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+}
+
+.slide h2 {
+    color: white;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 28px;
+    text-align: center;
+}
+
+.active-slide {
+    opacity: 1;
+    position: relative;
+}
+
+/* ==========================================
+   4. കോമൺ ബട്ടണുകൾ (Buttons)
+   ========================================== */
+.btn {
+    background-color: #198754;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.2s;
+}
+
+.btn:hover {
+    background-color: #146c43;
+}
+
+.block-btn {
+    width: 100%;
+    padding: 12px;
+    text-align: center;
+}
+
+/* ==========================================
+   5. ഉള്ളടക്ക പേജുകൾ (Content Layouts)
+   ========================================== */
+/* ക്ലബ് വിവരണം */
+.club-intro {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.club-intro img {
+    width: 100%;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+/* ഹൊറിസോണ്ടൽ സ്ക്രോളിങ് കാരുസൽ */
+.scroll-carousel {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 15px 5px;
+    scroll-behavior: smooth;
+}
+
+.scroll-carousel::-webkit-scrollbar {
+    height: 8px;
+}
+
+.scroll-carousel::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+.carousel-item {
+    min-width: 220px;
+    background: white;
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.carousel-item img {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+/* ഗ്രിഡ് ലേഔട്ടുകൾ */
+.notice-grid, .gallery-grid, .board-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.notice-card {
+    background: #fff3cd;
+    border-left: 5px solid #ffc107;
+    padding: 20px;
+    border-radius: 4px;
+}
+
+.notice-card h4 { margin-bottom: 10px; color: #664d03; }
+
+/* ലൈബ്രറി കാർഡുകൾ */
+.book-card {
+    background: white;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.b-title { color: #0f5132; margin-bottom: 5px;}
+.b-author { font-style: italic; color: #555; margin-bottom: 5px;}
+.star-rating { margin-bottom: 10px; }
+.star { font-size: 22px; color: #ccc; cursor: pointer; }
+.star.selected { color: #ffc107; }
+
+/* வோட்டிങ് ലേഔട്ട് */
+.vote-options-wrapper { margin: 20px 0; text-align: left; }
+.vote-opt {
+    display: block;
+    background: white;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid #ddd;
+}
+.vote-opt input { margin-right: 10px; }
+.progress-block { text-align: left; margin: 15px 0; }
+.bar-container { background: #e9ecef; border-radius: 4px; height: 20px; width: 100%; margin-top: 5px; }
+.bar { background: #198754; height: 100%; border-radius: 4px; transition: width 0.5s ease-in-out; }
+
+/* ഫോമുകൾ */
+.form-container {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    max-width: 600px;
+    margin: 30px auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 500; }
+.form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+
+/* ഗാലറി ഇൻഫോ */
+.gallery-info { padding: 12px; }
+.g-user { font-size: 12px; color: #777; display: block; margin-top: 5px;}
+
+/* പരിപാടികൾ */
+.event-row { background: white; display: flex; margin-bottom: 15px; border-radius: 6px; overflow: hidden; }
+.event-date {
+    background: #0f5132; color: white; padding: 20px; text-align: center;
+    min-width: 100px; display: flex; flex-direction: column; justify-content: center;
+}
+.event-details { padding: 20px; }
+
+/* കമ്മിറ്റി അംഗങ്ങൾ */
+.about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 25px 0; }
+.address-box { background: #e2e3e5; padding: 20px; border-radius: 6px;}
+.member-card { background: white; text-align: center; padding: 15px; border-radius: 6px;}
+.member-card img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 10px;}
+
+/* ഫൂട്ടർ */
+footer {
+    background-color: #212529;
+    color: #a8aeb4;
+    padding: 20px 0;
+    text-align: center;
+    margin-top: auto;
+}
+
+.social-links a { color: #3b5998; margin: 0 10px; font-size: 20px; transition: opacity 0.2s; }
+.social-links a:hover { opacity: 0.7; }
+.hidden { display: none; }
+.text-center { text-align: center; }
+
+/* ഡെസ്ക്ടോപ്പ് വ്യൂവിൽ മെനുവിന്റെ ഉള്ളിലെ ലോഗൗട്ട് ലിങ്ക് പൂർണ്ണമായി മറയ്ക്കുന്നു */
+.nav-logout {
+    display: none;
+}
+
+/* ==========================================
+   6. മൊബൈൽ റെസ്പോൺസീവ് (Mobile Responsive Settings)
+   ========================================== */
+@media (max-width: 768px) {
+    header {
+        position: relative;
+        padding: 12px 5%;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    header .logo {
+        font-size: 18px; /* ചെറിയ സ്ക്രീനുകളിൽ ലോഗോ ചെറുതാകുന്നു */
+    }
+
+    /* മൊബൈൽ ഹാംബർഗർ ബട്ടൺ ഏറ്റവും വലതുവശത്തേക്ക് നീക്കുന്നു */
+    .menu-toggle {
+        display: block;
+        order: 3; 
+        margin-left: 10px;
+    }
+
+    /* ലോഗിൻ/ലോഗൗട്ട് സോൺ മൊബൈലിൽ മനോഹരമായി അലൈൻ ചെയ്യുന്നു */
+    .header-auth-zone {
+        order: 2;
+        font-size: 13px;
+    }
+
+    .user-profile {
+        padding: 4px 8px;
+        font-size: 13px;
+    }
+
+    .header-auth-zone button {
+        padding: 4px 8px !important;
+        font-size: 12px !important;
+    }
+
+    /* മൊബൈൽ സ്ലൈഡ് ഡൗൺ നാവിഗേഷൻ മെനു */
+    nav {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background-color: #0f5132;
+        padding: 10px 0;
+        box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        border-top: 1px solid rgba(255,255,255,0.1);
+        order: 4;
+    }
+
+    nav.show-menu {
+        display: flex;
+    }
+
+    nav a {
+        margin: 8px 0;
+        padding: 10px 0;
+        width: 100%;
+        text-align: center;
+        font-size: 16px;
+    }
+
+    nav a:hover, nav a.active {
+        border-bottom: none;
+        background-color: #146c43;
+    }
+
+    .club-intro, .about-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* മൊബൈലിൽ മെനുവിന് ഉള്ളിലെ ലോഗൗട്ട് ലിങ്ക് ഭംഗിയായി കാണിക്കുന്നു */
+    .nav-logout {
+        display: block !important;
+        border-top: 1px dashed rgba(255,255,255,0.2) !important;
+        margin-top: 10px !important;
+        padding-top: 15px !important;
+    }
+
+    /* മൊബൈലിൽ പേരിന് വലതുവശത്തുള്ള റെഡ് ലോഗൗട്ട് ബട്ടൺ മറയ്ക്കുന്നു */
+    .header-logout {
+        display: none !important;
+    }
+
+    
+}
+
+/*footer app download section*/
+.app-downloads {
+    margin-top: 10px;
+}
+
+.store-links {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 5px;
+}
+
+.app-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #ffffff;
+    color: #333;
+    padding: 8px 15px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 0.85em;
+    border: 1px solid #ccc;
+    transition: 0.3s;
+}
+
+.app-btn:hover {
+    background-color: #f0f0f0;
+}

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>നവയുഗ ക്ലബ് - വോട്ട്</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        .hidden { display: none; }
+        .bar-container { background: #eee; height: 20px; border-radius: 10px; margin: 10px 0; }
+        .bar { background: #198754; height: 100%; border-radius: 10px; width: 0%; transition: width 0.5s; }
+    </style>
+</head>
+<body>
+
+    <div id="header-placeholder"></div>
+
+    <main class="container">
+        <div class="form-container text-center">
+            <h2>അഭിപ്രായ വോട്ടെടുപ്പ് (Voting)</h2>
+            <div class="poll-box">
+                <h3 id="poll-topic">വിഷയം: നമ്മുടെ വായനശാല എയർ കണ്ടീഷണർ (A/C) സൗകര്യമുള്ള മുറിയിലേക്ക് മാറ്റണോ?</h3>
+                
+                <form id="voting-form">
+                    <div class="vote-options-wrapper">
+                        <label class="vote-opt"><input type="radio" name="poll-option" value="opt1" required> <span>അതെ, തീർച്ചയായും മാറ്റണം</span></label>
+                        <label class="vote-opt"><input type="radio" name="poll-option" value="opt2"> <span>വേണ്ട, ഇപ്പോഴുള്ള സ്വാഭാവിക വായുസഞ്ചാരം മതി</span></label>
+                        <label class="vote-opt"><input type="radio" name="poll-option" value="opt3"> <span>തീരുമാനം അടുത്ത വർഷത്തെ ബഡ്ജറ്റിലേക്ക് മാറ്റിവെക്കാം</span></label>
+                    </div>
+                    <button type="submit" class="btn">വോട്ട് രേഖപ്പെടുത്തുക</button>
+                </form>
+
+                <div id="poll-results" class="hidden">
+                    <h3>നിലവിലെ വോട്ട് നില</h3>
+                    <div class="progress-block">
+                        <p>അതെ, മാറ്റണം: <span id="count-opt1">0</span> വോട്ടുകൾ</p>
+                        <div class="bar-container"><div class="bar" id="bar-opt1"></div></div>
+                    </div>
+                    <div class="progress-block">
+                        <p>വേണ്ട: <span id="count-opt2">0</span> വോട്ടുകൾ</p>
+                        <div class="bar-container"><div class="bar" id="bar-opt2"></div></div>
+                    </div>
+                    <div class="progress-block">
+                        <p>മാറ്റിവെക്കാം: <span id="count-opt3">0</span> വോട്ടുകൾ</p>
+                        <div class="bar-container"><div class="bar" id="bar-opt3"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+    <footer>
+    <div class="footer-content">
+        <p>© 2026 നവയുഗ ക്ലബ്. എല്ലാ അവകാശങ്ങളും നിക്ഷിപ്തം.</p>
+        <p>Designed and developed by <strong>Deepak NP</strong></p>
+        
+        <div class="social-links">
+            <a href="#"><i class="fa-brands fa-facebook"></i></a>
+            <a href="#"><i class="fa-brands fa-instagram"></i></a>
+            <a href="#"><i class="fa-brands fa-youtube"></i></a>
+        </div>
+
+        <div class="app-downloads">
+            <p style="margin-top: 15px; font-size: 0.9em;">മൊബൈൽ ആപ്പ് ഡൗൺലോഡ് ചെയ്യൂ:</p>
+            <div class="store-links">
+                <a href="path/to/your-app.apk" class="app-btn" download>
+                    <i class="fa-brands fa-android"></i> Android
+                </a>
+                <a href="https://apps.apple.com/your-app-link" class="app-btn" target="_blank">
+                    <i class="fa-brands fa-apple"></i> iOS
+                </a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+    <script src="app.js"></script>
+    <script>
+        // വോട്ട് സബ്മിറ്റ് ചെയ്യുമ്പോൾ
+        document.getElementById('voting-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const userName = localStorage.getItem('loggedInUser');
+            if (!userName) { alert('ലോഗിൻ ചെയ്യുക!'); return; }
+
+            const selectedOption = document.querySelector('input[name="poll-option"]:checked').value;
+            
+            const response = await fetch(WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'submitVote', option: selectedOption, userName: userName })
+            });
+            const result = await response.json();
+            
+            if(result.status === "success") {
+                alert("വോട്ട് രേഖപ്പെടുത്തി!");
+                location.reload(); // പേജ് റീലോഡ് ചെയ്ത് ഫലം കാണിക്കുന്നു
+            } else {
+                alert(result.message);
+            }
+        });
+
+        
+    // പേജ് ലോഡ് ആകുമ്പോൾ ഫലം കാണിക്കുന്നു
+    async function loadResults() {
+        const response = await fetch(`${WEB_APP_URL}?action=getVotes`);
+        const counts = await response.json();
+        const total = counts.opt1 + counts.opt2 + counts.opt3 || 1;
+
+        for (let key in counts) {
+            let percent = (counts[key] / total) * 100;
+            document.getElementById('count-' + key).innerText = counts[key];
+            document.getElementById('bar-' + key).style.width = percent + '%';
+        }
+    }
+
+    // വോട്ട് സബ്മിറ്റ് ചെയ്യുമ്പോൾ
+    document.getElementById('voting-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const userName = localStorage.getItem('loggedInUser');
+        const option = document.querySelector('input[name="poll-option"]:checked').value;
+
+        const response = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'submitVote', option: option, userName: userName })
+        });
+        
+        const result = await response.json();
+        if(result.status === "success") {
+            alert("വോട്ട് രേഖപ്പെടുത്തി!");
+            document.getElementById('voting-form').style.display = 'none';
+            document.getElementById('poll-results').classList.remove('hidden');
+            loadResults();
+        } else {
+            alert(result.message);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', loadResults);
+
+    </script>
+
+    
+<script>
+  window.addEventListener('load', () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then((reg) => {
+          console.log('Service Worker registered successfully!', reg);
+        })
+        .catch((err) => {
+          console.log('Service Worker registration failed:', err);
+        });
+    }
+  });
+</script>
+</body>
+</html>

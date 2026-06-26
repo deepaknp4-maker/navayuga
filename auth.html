@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login & Register</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .auth-container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    .tabs { display: flex; justify-content: space-around; margin-bottom: 20px; border-bottom: 2px solid #eee; }
+    .tab { padding: 10px; cursor: pointer; font-weight: bold; color: #555; }
+    .tab.active { color: #007bff; border-bottom: 2px solid #007bff; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
+    .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .message { margin-top: 15px; text-align: center; font-size: 14px; font-weight: bold; }
+    .error { color: red; }
+    .success { color: green; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="auth-container">
+  <div class="tabs">
+    <div id="loginTab" class="tab active" onclick="switchTab('login')">ലോഗിൻ</div>
+    <div id="registerTab" class="tab" onclick="switchTab('register')">രജിസ്റ്റർ</div>
+  </div>
+
+  <form id="loginForm" onsubmit="handleAuth(event, 'login')">
+    <div class="form-group">
+      <label>ഫോൺ നമ്പർ</label>
+      <input type="tel" id="loginPhone" placeholder="ഫോൺ നമ്പർ നൽകുക" required>
+    </div>
+    <div class="form-group">
+      <label>പാസ്‌വേഡ്</label>
+      <input type="password" id="loginPassword" placeholder="പാസ്‌വേഡ് നൽകുക" required>
+    </div>
+    <button type="submit">ലോഗിൻ ചെയ്യുക</button>
+  </form>
+
+  <form id="registerForm" class="hidden" onsubmit="handleAuth(event, 'register')">
+    <div class="form-group">
+      <label>പൂർണ്ണമായ പേര്</label>
+      <input type="text" id="regName" placeholder="പേര് നൽകുക" required>
+    </div>
+    <div class="form-group">
+      <label>ഫോൺ നമ്പർ</label>
+      <input type="tel" id="regPhone" placeholder="മൊബൈൽ നമ്പർ നൽകുക" required>
+    </div>
+    <div class="form-group">
+      <label>പാസ്‌വേഡ്</label>
+      <input type="password" id="regPassword" placeholder="ശക്തമായ പാസ്‌വേഡ് നൽകുക" required>
+    </div>
+    <button type="submit">അക്കൗണ്ട് ഉണ്ടാക്കുക</button>
+  </form>
+
+  <div id="msgBox" class="message"></div>
+</div>
+
+<script>
+  // ⚠️ നിങ്ങളുടെ പുതിയ ഗൂഗിൾ വെബ് ആപ്പ് ലിങ്ക് ഇവിടെ നൽകുക
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxWQFseQp9Lx67AmWjyPnk62I-p-uqz29Q8wksla6qvWdmoaLHrYqBh44c8S75jBehJ/exec';
+
+  function switchTab(type) {
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const loginTab = document.getElementById('loginTab');
+    const registerTab = document.getElementById('registerTab');
+    document.getElementById('msgBox').innerText = '';
+
+    if (type === 'login') {
+      loginForm.classList.remove('hidden');
+      registerForm.classList.add('hidden');
+      loginTab.classList.add('active');
+      registerTab.classList.remove('active');
+    } else {
+      loginForm.classList.add('hidden');
+      registerForm.classList.remove('hidden');
+      loginTab.classList.remove('active');
+      registerTab.classList.add('active');
+    }
+  }
+
+  async function handleAuth(event, action) {
+    event.preventDefault();
+    const msgBox = document.getElementById('msgBox');
+    msgBox.innerText = 'ദയവായി കാത്തിരിക്കൂ...';
+    msgBox.className = 'message';
+
+    let payload = { action: action };
+
+    if (action === 'login') {
+      payload.phone = document.getElementById('loginPhone').value;
+      payload.password = document.getElementById('loginPassword').value;
+    } else {
+      payload.name = document.getElementById('regName').value;
+      payload.phone = document.getElementById('regPhone').value;
+      payload.password = document.getElementById('regPassword').value;
+    }
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+
+      if (result.status === 'success') {
+        if (action === 'login') {
+          msgBox.innerText = 'ലോഗിൻ വിജയകരം! സ്വാഗതം ' + result.userName;
+          msgBox.classList.add('success');
+          
+          // ലോഗിൻ വിവരങ്ങൾ ബ്രൗസറിൽ സൂക്ഷിക്കുന്നു
+          localStorage.setItem('loggedInUser', result.userName);
+          localStorage.setItem('loggedInPhone', payload.phone);
+
+          // 2 സെക്കൻഡിന് ശേഷം ഹോം പേജിലേക്ക് (index.html) റീഡയറക്ട് ചെയ്യും
+          setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+        } else {
+          msgBox.innerText = 'രജിസ്ട്രേഷൻ പൂർത്തിയായി! ഇനി ലോഗിൻ ചെയ്യാം.';
+          msgBox.classList.add('success');
+          document.getElementById('registerForm').reset();
+          setTimeout(() => { switchTab('login'); }, 2000);
+        }
+      } else {
+        msgBox.innerText = result.message;
+        msgBox.classList.add('error');
+      }
+    } catch (error) {
+      msgBox.innerText = 'ക്ഷമിക്കണം, കണക്ഷൻ പ്രശ്നമുണ്ട്!';
+      msgBox.classList.add('error');
+    }
+  }
+</script>
+
+</body>
+</html>

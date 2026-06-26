@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <title>നവയുഗ ക്ലബ് - അഡ്മിൻ പാനൽ</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .admin-box { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin-bottom: 35px; }
+        .form-group { margin-bottom: 20px; }
+        input, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; }
+        .btn { background: #0f5132; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <main class="container">
+        <div class="admin-box">
+            <h3><i class="fa-solid fa-bullhorn"></i> അറിയിപ്പുകൾ നൽകുക</h3>
+            <form id="noticeForm">
+                <input type="text" id="nTitle" placeholder="വിഷയം" required>
+                <textarea id="nContent" placeholder="വിശദാംശങ്ങൾ" required></textarea>
+                <button type="submit" class="btn">പബ്ലിഷ് ചെയ്യുക</button>
+            </form>
+        </div>
+
+        <div class="admin-box">
+            <h3><i class="fa-solid fa-trophy"></i> കുട്ടികളുടെ നേട്ടങ്ങൾ ചേർക്കുക</h3>
+            <form id="achievementForm">
+                <input type="text" id="achTitle" placeholder="കുട്ടിയുടെ പേരും നേട്ടവും" required>
+                <div class="form-group">
+                    <label>ചിത്രം അപ്‌ലോഡ് ചെയ്യുക:</label>
+                    <input type="file" id="achFile" accept="image/*" required>
+                </div>
+                <button type="submit" class="btn">നേട്ടം പബ്ലിഷ് ചെയ്യുക</button>
+            </form>
+        </div>
+
+        <div class="admin-box">
+            <h3><i class="fa-solid fa-book"></i> ലൈബ്രറി സ്റ്റാറ്റസ് മാറ്റുക</h3>
+            <table id="bookTable" width="100%" border="1">
+    <thead>
+        <tr>
+            <th>ബുക്ക്</th>
+            <th>സ്റ്റാറ്റസ്</th>
+            <th>ആക്ഷൻ</th>
+        </tr>
+    </thead>
+    <tbody id="bookList"></tbody>
+</table>
+        </div>
+
+        <div class="admin-box">
+            <h3><i class="fa-solid fa-poll"></i> പുതിയ വോട്ടെടുപ്പ്</h3>
+            <form id="newVoteForm">
+                <input type="text" id="voteTopic" placeholder="ചോദ്യം" required>
+                <input type="text" id="opt1" placeholder="ഓപ്ഷൻ 1" required>
+                <input type="text" id="opt2" placeholder="ഓപ്ഷൻ 2" required>
+                <input type="text" id="opt3" placeholder="ഓപ്ഷൻ 3" required>
+                <button type="submit" class="btn">വോട്ട് പബ്ലിഷ് ചെയ്യുക</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycby96lV6JOLU7vFekEkYTIp33OjiEJQW6am4crpEWyF1nZPCuoryKMv9-Fb7qliS7Ovmqg/exec"; 
+
+        // 1. നേട്ടങ്ങൾ അപ്‌ലോഡ് ചെയ്യാൻ (Image Upload Logic)
+        document.getElementById('achievementForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // ബട്ടൺ ഡിസേബിൾ ചെയ്യുന്നു (Double click തടയാൻ)
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerText = "അപ്‌ലോഡ് ചെയ്യുന്നു...";
+
+    const fileInput = document.getElementById('achFile').files[0];
+    if (!fileInput) {
+        alert("ദയവായി ഒരു ചിത്രം തിരഞ്ഞെടുക്കുക!");
+        submitBtn.disabled = false;
+        submitBtn.innerText = "നേട്ടം പബ്ലിഷ് ചെയ്യുക";
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(fileInput);
+    
+    reader.onload = async () => {
+        const payload = {
+            action: 'addAchievement',
+            title: document.getElementById('achTitle').value,
+            imageBytes: reader.result.split(',')[1],
+            mimeType: fileInput.type,
+            fileName: fileInput.name
+        };
+
+        try {
+            // mode: 'no-cors' ആവശ്യമെങ്കിൽ മാത്രം ഉപയോഗിക്കുക, സാധാരണയായി 'cors' ആണ് നല്ലത്
+            const response = await fetch(API_URL, { 
+                method: 'POST', 
+                body: JSON.stringify(payload) 
+            });
+            
+            alert("നേട്ടം വിജയകരമായി പബ്ലിഷ് ചെയ്തു!");
+            document.getElementById('achievementForm').reset(); // ഫോം ക്ലിയർ ചെയ്യുന്നു
+        } catch (error) {
+            console.error("Error:", error);
+            alert("അപ്‌ലോഡ് പരാജയപ്പെട്ടു, ദയവായി വീണ്ടും ശ്രമിക്കുക.");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "നേട്ടം പബ്ലിഷ് ചെയ്യുക";
+        }
+    };
+
+    reader.onerror = () => {
+        alert("ചിത്രം വായിക്കുന്നതിൽ പരാജയപ്പെട്ടു.");
+        submitBtn.disabled = false;
+        submitBtn.innerText = "നേട്ടം പബ്ലിഷ് ചെയ്യുക";
+    };
+});
+
+        // 2. ബുക്ക് ലിസ്റ്റ് ലോഡ് ചെയ്യാൻ
+        async function loadBooks() {
+    try {
+        const res = await fetch(API_URL + '?action=getBooks');
+        const books = await res.json();
+        const tbody = document.getElementById('bookList');
+        
+        tbody.innerHTML = ''; // പഴയത് ക്ലിയർ ചെയ്യുന്നു
+
+        books.forEach(book => {
+            // book.name ആണ് കൺസോളിൽ വരുന്നത് എന്ന് ഉറപ്പാക്കുക
+            tbody.innerHTML += `<tr>
+                <td>${book.name}</td>
+                <td>${book.status}</td>
+                <td><button onclick="updateStatus('${book.id}')">Available ആക്കുക</button></td>
+            </tr>`;
+        });
+    } catch(err) {
+        console.error("Error loading books:", err);
+    }
+
+    { "id": "101", "name": "വിജ്ഞാനം", "status": "Available" }
+}
+
+        // ബുക്ക് സ്റ്റാറ്റസ് മാറ്റാൻ
+        async function updateStatus(bookId) {
+    if (!confirm("ഈ ബുക്കിന്റെ സ്റ്റാറ്റസ് 'Available' ആക്കണോ?")) return;
+
+    try {
+        const response = await fetch(API_URL, { 
+            method: 'POST', 
+            // 'mode: cors' ഒഴിവാക്കി നോക്കുക
+            body: JSON.stringify({ action: 'updateBookStatus', bookId: bookId }) 
+        });
+        
+        const result = await response.json();
+        if (result.status === "success") {
+            alert("അപ്‌ഡേറ്റ് ചെയ്തു!");
+            loadBooks();
+        } else {
+            alert("പരാജയപ്പെട്ടു.");
+        }
+    } catch (error) {
+        // എറർ മെസ്സേജ് കാണിക്കാൻ
+        console.error("Fetch Error:", error);
+        alert("സെർവർ ബന്ധപ്പെടാൻ കഴിഞ്ഞില്ല. ലിങ്ക് പരിശോധിക്കുക.");
+    }
+}
+
+        window.onload = loadBooks;
+    </script>
+</body>
+</html>

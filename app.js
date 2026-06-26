@@ -235,31 +235,37 @@ function initBookingForm() {
     if (authorField) authorField.value = localStorage.getItem('selectedBookAuthor') || "";
     if (dateField) dateField.value = new Date().toISOString().split('T')[0];
 
-    reservationForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitBtn = reservationForm.querySelector('button[type="submit"]');
-        if (submitBtn) { submitBtn.innerText = "സമർപ്പിക്കുന്നു..."; submitBtn.disabled = true; }
+     reservationForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = reservationForm.querySelector('button[type="submit"]');
+    submitBtn.innerText = "സമർപ്പിക്കുന്നു...";
+    submitBtn.disabled = true;
 
-        const bookingData = {
-            bookingId: "BK-" + Math.floor(1000 + Math.random() * 9000),
-            userPhone: localStorage.getItem('loggedInPhone') || "",
-            bookId: localStorage.getItem('selectedBookId') || "BID-00",
-            bookName: bookField ? bookField.value : "",
-            authorName: authorField ? authorField.value : "",
-            bookedDate: dateField ? dateField.value : "",
-            returnDate: document.getElementById('form-return-date') ? document.getElementById('form-return-date').value : ""
-        };
+    const bookingData = {
+        action: 'addBooking',
+        bookingId: "BK-" + Math.floor(1000 + Math.random() * 9000),
+        userPhone: localStorage.getItem('loggedInPhone') || "",
+        bookId: localStorage.getItem('selectedBookId'),
+        bookName: bookField.value,
+        authorName: authorField.value,
+        bookedDate: dateField.value,
+        returnDate: document.getElementById('form-return-date').value
+    };
 
-        try {
-            await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bookingData) });
-            alert(`ബുക്കിംഗ് വിജയകരമായി സമർപ്പിച്ചു!`);
-            localStorage.removeItem('selectedBookId');
-            window.location.href = "library.html";
-        } catch (error) {
-            alert("ബുക്കിംഗ് പരാജയപ്പെട്ടു.");
-            if (submitBtn) { submitBtn.innerText = "ബുക്കിംഗ് സമർപ്പിക്കുക"; submitBtn.disabled = false; }
-        }
-    });
+    try {
+        await fetch(WEB_APP_URL, { 
+            method: 'POST', 
+            // no-cors പകരം cors ഉപയോഗിക്കുന്നത് സുരക്ഷിതമാണ് (Apps Script-ൽ CORS എനേബിൾ ആണെങ്കിൽ)
+            body: JSON.stringify(bookingData) 
+        });
+        alert("ബുക്കിംഗ് വിജയകരമായി സമർപ്പിച്ചു!");
+        window.location.href = "library.html";
+    } catch (error) {
+        alert("പരാജയപ്പെട്ടു. ദയവായി വീണ്ടും ശ്രമിക്കുക.");
+        submitBtn.innerText = "ബുക്കിംഗ് സമർപ്പിക്കുക";
+        submitBtn.disabled = false;
+    }
+});
 }
 
 // ==========================================

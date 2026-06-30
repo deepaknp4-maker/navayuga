@@ -416,3 +416,40 @@ self.addEventListener('fetch', (e) => {
     })
   );
 });
+
+// ==========================================
+// PWA install prompt handler (shows install button)
+// ==========================================
+(function() {
+    try {
+        const installButtons = document.querySelectorAll('.app-downloads .app-btn');
+        if (installButtons && installButtons.length) {
+            installButtons.forEach(btn => {
+                if (!btn._pwaHandlerAdded) {
+                    btn.addEventListener('click', async function(ev) {
+                        ev.preventDefault();
+                        const promptEvent = window.deferredPWAInstall;
+                        if (promptEvent) {
+                            promptEvent.prompt();
+                            const choice = await promptEvent.userChoice;
+                            if (choice && choice.outcome === 'accepted') {
+                                console.log('PWA install accepted');
+                            } else {
+                                console.log('PWA install dismissed');
+                            }
+                            window.deferredPWAInstall = null;
+                        } else {
+                            alert('Install not supported. On iOS use Share → Add to Home Screen.');
+                        }
+                    });
+                    btn._pwaHandlerAdded = true;
+                }
+            });
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window.deferredPWAInstall = e;
+        });
+    } catch (e) { console.error('PWA install setup error', e); }
+})();

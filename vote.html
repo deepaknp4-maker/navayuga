@@ -22,13 +22,13 @@
         <div class="form-container text-center">
             <h2>അഭിപ്രായ വോട്ടെടുപ്പ് (Voting)</h2>
             <div class="poll-box">
-                <h3 id="poll-topic">വിഷയം: നമ്മുടെ വായനശാല എയർ കണ്ടീഷണർ (A/C) സൗകര്യമുള്ള മുറിയിലേക്ക് മാറ്റണോ?</h3>
+                <h3 id="poll-topic">വിഷയം: ലോഡ് ചെയ്യുമ്പോൾ...</h3>
                 
                 <form id="voting-form">
                     <div class="vote-options-wrapper">
-                        <label class="vote-opt"><input type="radio" name="poll-option" value="opt1" required> <span>അതെ, തീർച്ചയായും മാറ്റണം</span></label>
-                        <label class="vote-opt"><input type="radio" name="poll-option" value="opt2"> <span>വേണ്ട, ഇപ്പോഴുള്ള സ്വാഭാവിക വായുസഞ്ചാരം മതി</span></label>
-                        <label class="vote-opt"><input type="radio" name="poll-option" value="opt3"> <span>തീരുമാനം അടുത്ത വർഷത്തെ ബഡ്ജറ്റിലേക്ക് മാറ്റിവെക്കാം</span></label>
+                        <label class="vote-opt"><input type="radio" name="poll-option" value="opt1" required> <span id="label-opt1">loading...</span></label>
+                        <label class="vote-opt"><input type="radio" name="poll-option" value="opt2"> <span id="label-opt2">loading...</span></label>
+                        <label class="vote-opt"><input type="radio" name="poll-option" value="opt3"> <span id="label-opt3">loading...</span></label>
                     </div>
                     <button type="submit" class="btn">വോട്ട് രേഖപ്പെടുത്തുക</button>
                 </form>
@@ -36,15 +36,15 @@
                 <div id="poll-results" class="hidden">
                     <h3>നിലവിലെ വോട്ട് നില</h3>
                     <div class="progress-block">
-                        <p>അതെ, മാറ്റണം: <span id="count-opt1">0</span> വോട്ടുകൾ</p>
+                        <p><span id="result-label-opt1">തീർച്ചയായും</span>: <span id="count-opt1">0</span> വോട്ടുകൾ</p>
                         <div class="bar-container"><div class="bar" id="bar-opt1"></div></div>
                     </div>
                     <div class="progress-block">
-                        <p>വേണ്ട: <span id="count-opt2">0</span> വോട്ടുകൾ</p>
+                        <p><span id="result-label-opt2">വേണ്ട</span>: <span id="count-opt2">0</span> വോട്ടുകൾ</p>
                         <div class="bar-container"><div class="bar" id="bar-opt2"></div></div>
                     </div>
                     <div class="progress-block">
-                        <p>മാറ്റിവെക്കാം: <span id="count-opt3">0</span> വോട്ടുകൾ</p>
+                        <p><span id="result-label-opt3">മാറ്റിവെക്കാം</span>: <span id="count-opt3">0</span> വോട്ടുകൾ</p>
                         <div class="bar-container"><div class="bar" id="bar-opt3"></div></div>
                     </div>
                 </div>
@@ -80,62 +80,127 @@
 
     <script src="app.js"></script>
     <script>
-        // വോട്ട് സബ്മിറ്റ് ചെയ്യുമ്പോൾ
-        document.getElementById('voting-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const userName = localStorage.getItem('loggedInUser');
-            if (!userName) { alert('ലോഗിൻ ചെയ്യുക!'); return; }
-
-            const selectedOption = document.querySelector('input[name="poll-option"]:checked').value;
-            
-            const response = await fetch(WEB_APP_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'submitVote', option: selectedOption, userName: userName })
-            });
-            const result = await response.json();
-            
-            if(result.status === "success") {
-                alert("വോട്ട് രേഖപ്പെടുത്തി!");
-                location.reload(); // പേജ് റീലോഡ് ചെയ്ത് ഫലം കാണിക്കുന്നു
-            } else {
-                alert(result.message);
-            }
-        });
-
         
     // പേജ് ലോഡ് ആകുമ്പോൾ ഫലം കാണിക്കുന്നു
-    async function loadResults() {
-        const response = await fetch(`${WEB_APP_URL}?action=getVotes`);
-        const counts = await response.json();
-        const total = counts.opt1 + counts.opt2 + counts.opt3 || 1;
-
-        for (let key in counts) {
-            let percent = (counts[key] / total) * 100;
-            document.getElementById('count-' + key).innerText = counts[key];
-            document.getElementById('bar-' + key).style.width = percent + '%';
+    function handleLoadResults(counts) {
+        applyPollConfig(counts);
+        const total = (counts.opt1 || 0) + (counts.opt2 || 0) + (counts.opt3 || 0) || 1;
+        ['opt1','opt2','opt3'].forEach(function(key) {
+            const val = counts[key] || 0;
+            const percent = (val / total) * 100;
+            const countEl = document.getElementById('count-' + key);
+            const barEl = document.getElementById('bar-' + key);
+            if (countEl) countEl.innerText = val;
+            if (barEl) barEl.style.width = percent + '%';
+        });
+        document.getElementById('poll-results').classList.remove('hidden');
+        // Hide voting form if server says user already voted or local flag set
+        if (counts.alreadyVoted) {
+            try { localStorage.setItem('hasVoted', 'true'); } catch (e) {}
+        }
+        if (counts.alreadyVoted || localStorage.getItem('hasVoted') === 'true') {
+            document.getElementById('voting-form').style.display = 'none';
+        } else {
+            document.getElementById('voting-form').style.display = 'block';
         }
     }
 
-    // വോട്ട് സബ്മിറ്റ് ചെയ്യുമ്പോൾ
-    document.getElementById('voting-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
+    async function loadResults() {
+        const params = new URLSearchParams({ action: 'getVotes' });
         const userName = localStorage.getItem('loggedInUser');
-        const option = document.querySelector('input[name="poll-option"]:checked').value;
+        if (userName) params.append('userName', userName);
 
-        const response = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'submitVote', option: option, userName: userName })
-        });
-        
-        const result = await response.json();
-        if(result.status === "success") {
-            alert("വോട്ട് രേഖപ്പെടുത്തി!");
-            document.getElementById('voting-form').style.display = 'none';
-            document.getElementById('poll-results').classList.remove('hidden');
-            loadResults();
-        } else {
-            alert(result.message);
+        try {
+            const response = await fetch(`${WEB_APP_URL}?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                mode: 'cors'
+            });
+            if (!response.ok) throw new Error('Network response was not ok: ' + response.status);
+            const result = await response.json();
+            handleLoadResults(result);
+        } catch (err) {
+            console.error('loadResults error', err);
+            // Fallback to JSONP using the server's callback support
+            try {
+                const callbackName = 'handleLoadResults';
+                const script = document.createElement('script');
+                script.src = `${WEB_APP_URL}?action=getVotes${userName ? '&userName=' + encodeURIComponent(userName) : ''}&callback=${callbackName}`;
+                script.onerror = function() {
+                    document.getElementById('poll-results').classList.remove('hidden');
+                    document.getElementById('poll-results').innerHTML = `<p style="color:red;">വോട്ട് ഫലം ലോഡ് ചെയ്യുമ്പോൾ പിശക് സംഭവിച്ചു. പേജ് റീഫ്രഷ് ചെയ്യുക.</p>`;
+                };
+                document.body.appendChild(script);
+            } catch (e2) {
+                console.error('JSONP fallback failed', e2);
+                document.getElementById('poll-results').classList.remove('hidden');
+                document.getElementById('poll-results').innerHTML = `<p style="color:red;">വോട്ട് ഫലം ലോഡ് ചെയ്യുമ്പോൾ പിശക് സംഭവിച്ചു. പേജ് റീഫ്രഷ് ചെയ്യുക.</p>`;
+            }
         }
+    }
+
+    function applyPollConfig(data) {
+        const topicEl = document.getElementById('poll-topic');
+        const opt1El = document.getElementById('label-opt1');
+        const opt2El = document.getElementById('label-opt2');
+        const opt3El = document.getElementById('label-opt3');
+        const resultLabel1 = document.getElementById('result-label-opt1');
+        const resultLabel2 = document.getElementById('result-label-opt2');
+        const resultLabel3 = document.getElementById('result-label-opt3');
+
+        if (topicEl && data.topic) {
+            topicEl.innerText = `വിഷയം: ${data.topic}`;
+        }
+        if (opt1El && data.o1) opt1El.innerText = data.o1;
+        if (opt2El && data.o2) opt2El.innerText = data.o2;
+        if (opt3El && data.o3) opt3El.innerText = data.o3;
+
+        if (resultLabel1 && data.o1) resultLabel1.innerText = data.o1;
+        if (resultLabel2 && data.o2) resultLabel2.innerText = data.o2;
+        if (resultLabel3 && data.o3) resultLabel3.innerText = data.o3;
+    }
+
+    async function submitVote(option) {
+        const userName = localStorage.getItem('loggedInUser');
+        if (!userName) {
+            alert('ദയവായി ആദ്യം ലോഗിൻ ചെയ്യുക.');
+            return;
+        }
+        try {
+            // Use GET to call the Apps Script endpoint to avoid CORS preflight issues
+            const params = new URLSearchParams({ action: 'submitVote', option: option, userName: userName });
+            const response = await fetch(`${WEB_APP_URL}?${params.toString()}`, {
+                method: 'GET',
+                mode: 'cors',
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!response.ok) throw new Error('Network response was not ok: ' + response.status);
+            const result = await response.json();
+            if (result.status === 'success') {
+                alert('വോട്ട് രേഖപ്പെടുത്തി!');
+                try { localStorage.setItem('hasVoted', 'true'); } catch (e) {}
+                document.getElementById('voting-form').style.display = 'none';
+                document.getElementById('poll-results').classList.remove('hidden');
+                loadResults();
+            } else {
+                alert(result.message || 'വോട്ട് രജിസ്ട്രേഷൻ പരാജയപ്പെട്ടു');
+            }
+        } catch (err) {
+            console.error('submitVote error', err);
+            alert('വോട്ട് സമർപ്പിക്കുമ്പോൾ പിശക് സംഭവിച്ചു. വീണ്ടും ശ്രമിക്കുക.');
+        }
+    }
+
+    document.getElementById('voting-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const selectedInput = document.querySelector('input[name="poll-option"]:checked');
+        if (!selectedInput) {
+            alert('ദയവായി ഒരു ഓപ്ഷൻ തിരഞ്ഞെടുക്കുക.');
+            return;
+        }
+        submitVote(selectedInput.value);
     });
 
     document.addEventListener('DOMContentLoaded', loadResults);

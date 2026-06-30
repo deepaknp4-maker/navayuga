@@ -37,17 +37,33 @@
         </div>
 
         <div class="admin-box">
+            <h3><i class="fa-solid fa-book"></i> പുതിയ ബുക്ക് ചേർത്തു</h3>
+            <form id="addBookForm">
+                <input type="text" id="bookTitle" placeholder="പുസ്തകത്തിന്റെ പേര്" required>
+                <input type="text" id="bookAuthor" placeholder="രചയിതാവിന്റെ പേര്" required>
+                <textarea id="bookDescription" placeholder="വിവരണം (ഐച്ഛികം)"></textarea>
+                <select id="bookStatus">
+                    <option value="Available">Available</option>
+                    <option value="Not Available">Not Available</option>
+                </select>
+                <button type="submit" class="btn">പുസ്തകം ചേർക്കുക</button>
+            </form>
+        </div>
+
+        <div class="admin-box">
             <h3><i class="fa-solid fa-book"></i> ലൈബ്രറി സ്റ്റാറ്റസ് മാറ്റുക</h3>
             <table id="bookTable" width="100%" border="1">
-    <thead>
-        <tr>
-            <th>ബുക്ക്</th>
-            <th>സ്റ്റാറ്റസ്</th>
-            <th>ആക്ഷൻ</th>
-        </tr>
-    </thead>
-    <tbody id="bookList"></tbody>
-</table>
+                <thead>
+                    <tr>
+                        <th>ഇഡീ</th>
+                        <th>പുസ്തകം</th>
+                        <th>രചയിതാവ്</th>
+                        <th>സ്റ്റാറ്റസ്</th>
+                        <th>ആക്ഷൻ</th>
+                    </tr>
+                </thead>
+                <tbody id="bookList"></tbody>
+            </table>
         </div>
 
         <div class="admin-box">
@@ -63,112 +79,194 @@
     </main>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycby96lV6JOLU7vFekEkYTIp33OjiEJQW6am4crpEWyF1nZPCuoryKMv9-Fb7qliS7Ovmqg/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycby96lV6JOLU7vFekEkYTIp33OjiEJQW6am4crpEWyF1nZPCuoryKMv9-Fb7qliS7Ovmqg/exec";
 
-        // 1. നേട്ടങ്ങൾ അപ്‌ലോഡ് ചെയ്യാൻ (Image Upload Logic)
-        document.getElementById('achievementForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    // ബട്ടൺ ഡിസേബിൾ ചെയ്യുന്നു (Double click തടയാൻ)
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.innerText = "അപ്‌ലോഡ് ചെയ്യുന്നു...";
-
-    const fileInput = document.getElementById('achFile').files[0];
-    if (!fileInput) {
-        alert("ദയവായി ഒരു ചിത്രം തിരഞ്ഞെടുക്കുക!");
-        submitBtn.disabled = false;
-        submitBtn.innerText = "നേട്ടം പബ്ലിഷ് ചെയ്യുക";
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.readAsDataURL(fileInput);
-    
-    reader.onload = async () => {
-        const payload = {
-            action: 'addAchievement',
-            title: document.getElementById('achTitle').value,
-            imageBytes: reader.result.split(',')[1],
-            mimeType: fileInput.type,
-            fileName: fileInput.name
-        };
-
-        try {
-            // mode: 'no-cors' ആവശ്യമെങ്കിൽ മാത്രം ഉപയോഗിക്കുക, സാധാരണയായി 'cors' ആണ് നല്ലത്
-            const response = await fetch(API_URL, { 
-                method: 'POST', 
-                body: JSON.stringify(payload) 
-            });
-            
-            alert("നേട്ടം വിജയകരമായി പബ്ലിഷ് ചെയ്തു!");
-            document.getElementById('achievementForm').reset(); // ഫോം ക്ലിയർ ചെയ്യുന്നു
-        } catch (error) {
-            console.error("Error:", error);
-            alert("അപ്‌ലോഡ് പരാജയപ്പെട്ടു, ദയവായി വീണ്ടും ശ്രമിക്കുക.");
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerText = "നേട്ടം പബ്ലിഷ് ചെയ്യുക";
+        async function postJson(payload) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                        'Accept': 'application/json'
+                    },
+                    body: new URLSearchParams(payload)
+                });
+                if (!response.ok) throw new Error('Network response was not ok: ' + response.status);
+                return await response.json();
+            } catch (error) {
+                console.error('Admin post error:', error);
+                return { status: 'error', message: error.message || 'Network error' };
+            }
         }
-    };
 
-    reader.onerror = () => {
-        alert("ചിത്രം വായിക്കുന്നതിൽ പരാജയപ്പെട്ടു.");
-        submitBtn.disabled = false;
-        submitBtn.innerText = "നേട്ടം പബ്ലിഷ് ചെയ്യുക";
-    };
-});
+        function showMessage(message) {
+            alert(message);
+        }
 
-        // 2. ബുക്ക് ലിസ്റ്റ് ലോഡ് ചെയ്യാൻ
+        async function handleNoticeSubmit(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const title = document.getElementById('nTitle').value.trim();
+            const content = document.getElementById('nContent').value.trim();
+            if (!title || !content) { showMessage('ദയവായി അറിയിപ്പ് തലക്കെട്ടും വിവരവും നൽകുക.'); return; }
+            btn.disabled = true;
+            btn.innerText = 'സമർപ്പിക്കുന്നു...';
+            const result = await postJson({ action: 'addNotice', title: title, content: content });
+            if (result.status === 'success') {
+                showMessage('അറിയിപ്പ് വിജയകരമായി ചേർത്തു.');
+                e.target.reset();
+            } else {
+                showMessage(result.message || 'അറിയിപ്പ് ചേർക്കുന്നതിൽ പിശക്.');
+            }
+            btn.disabled = false;
+            btn.innerText = 'പബ്ലിഷ് ചെയ്യുക';
+        }
+
+        async function handleAchievementSubmit(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const title = document.getElementById('achTitle').value.trim();
+            const fileInput = document.getElementById('achFile').files[0];
+            if (!title || !fileInput) { showMessage('ദയവായി പേര്‍യും ചിത്രം നൽകുക.'); return; }
+            btn.disabled = true;
+            btn.innerText = 'അപ്‌ലോഡ് ചെയ്യുന്നു...';
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const payload = {
+                    action: 'addAchievement',
+                    title: title,
+                    imageBytes: reader.result.split(',')[1],
+                    mimeType: fileInput.type,
+                    fileName: fileInput.name
+                };
+                const result = await postJson(payload);
+                if (result.status === 'success') {
+                    showMessage('നേട്ടം വിജയകരമായി ചേർത്തു.');
+                    e.target.reset();
+                } else {
+                    showMessage(result.message || 'നേട്ടം ചേർക്കുന്നതിൽ പിശക്.');
+                }
+                btn.disabled = false;
+                btn.innerText = 'നേട്ടം പബ്ലിഷ് ചെയ്യുക';
+            };
+            reader.onerror = () => {
+                showMessage('ചിത്രം വായിക്കുന്നതിൽ പിശക്. വീണ്ടും ശ്രമിക്കുക.');
+                btn.disabled = false;
+                btn.innerText = 'നേട്ടം പബ്ലിഷ് ചെയ്യുക';
+            };
+            reader.readAsDataURL(fileInput);
+        }
+
+        function buildBookId() {
+            return 'BK-' + Date.now();
+        }
+
         async function loadBooks() {
-    try {
-        const res = await fetch(API_URL + '?action=getBooks');
-        const books = await res.json();
-        const tbody = document.getElementById('bookList');
-        
-        tbody.innerHTML = ''; // പഴയത് ക്ലിയർ ചെയ്യുന്നു
-
-        books.forEach(book => {
-            // book.name ആണ് കൺസോളിൽ വരുന്നത് എന്ന് ഉറപ്പാക്കുക
-            tbody.innerHTML += `<tr>
-                <td>${book.name}</td>
-                <td>${book.status}</td>
-                <td><button onclick="updateStatus('${book.id}')">Available ആക്കുക</button></td>
-            </tr>`;
-        });
-    } catch(err) {
-        console.error("Error loading books:", err);
-    }
-
-    { "id": "101", "name": "വിജ്ഞാനം", "status": "Available" }
-}
-
-        // ബുക്ക് സ്റ്റാറ്റസ് മാറ്റാൻ
-        async function updateStatus(bookId) {
-    if (!confirm("ഈ ബുക്കിന്റെ സ്റ്റാറ്റസ് 'Available' ആക്കണോ?")) return;
-
-    try {
-        const response = await fetch(API_URL, { 
-            method: 'POST', 
-            // 'mode: cors' ഒഴിവാക്കി നോക്കുക
-            body: JSON.stringify({ action: 'updateBookStatus', bookId: bookId }) 
-        });
-        
-        const result = await response.json();
-        if (result.status === "success") {
-            alert("അപ്‌ഡേറ്റ് ചെയ്തു!");
-            loadBooks();
-        } else {
-            alert("പരാജയപ്പെട്ടു.");
+            try {
+                const response = await fetch(API_URL + '?action=getBooks');
+                if (!response.ok) throw new Error('Network response was not ok: ' + response.status);
+                const books = await response.json();
+                const tbody = document.getElementById('bookList');
+                tbody.innerHTML = '';
+                books.forEach(book => {
+                    const status = book.status || 'Available';
+                    const canUpdate = status.toLowerCase() !== 'available';
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr>
+                            <td>${book.bookId || ''}</td>
+                            <td>${book.bookName || ''}</td>
+                            <td>${book.authorName || ''}</td>
+                            <td>${status}</td>
+                            <td>${canUpdate ? `<button type="button" onclick="updateStatus('${book.bookId}')">Available ആക്കുക</button>` : '<span>Ready</span>'}</td>
+                        </tr>
+                    `);
+                });
+            } catch (error) {
+                console.error('Error loading books:', error);
+                showMessage('ലൈബ്രറി ബുക്ക് പട്ടിക ലോഡ് ചെയ്യാൻ പറ്റിയില്ല. പേജ് റീഫ്രഷ് ചെയ്യുക.');
+            }
         }
-    } catch (error) {
-        // എറർ മെസ്സേജ് കാണിക്കാൻ
-        console.error("Fetch Error:", error);
-        alert("സെർവർ ബന്ധപ്പെടാൻ കഴിഞ്ഞില്ല. ലിങ്ക് പരിശോധിക്കുക.");
-    }
-}
 
-        window.onload = loadBooks;
+        async function handleAddBookSubmit(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const title = document.getElementById('bookTitle').value.trim();
+            const author = document.getElementById('bookAuthor').value.trim();
+            const description = document.getElementById('bookDescription').value.trim();
+            const status = document.getElementById('bookStatus').value;
+            if (!title || !author) { showMessage('പുസ്തകത്തിന്റെ പേര്‍യും രചയിതാവിന്റെ പേര്‍യും നൽകുക.'); return; }
+            btn.disabled = true;
+            btn.innerText = 'സേവ് ചെയ്യുന്നു...';
+            const result = await postJson({
+                action: 'addBook',
+                bookId: buildBookId(),
+                bookName: title,
+                authorName: author,
+                description: description,
+                status: status
+            });
+            if (result.status === 'success') {
+                showMessage('പുസ്തകം വിജയകരമായി ചേർത്തു.');
+                e.target.reset();
+                loadBooks();
+            } else {
+                showMessage(result.message || 'പുസ്തകം ചേർക്കുന്നതിൽ പിശക്.');
+            }
+            btn.disabled = false;
+            btn.innerText = 'പുസ്തകം ചേർക്കുക';
+        }
+
+        async function updateStatus(bookId) {
+            if (!confirm("ഈ ബുക്കിന്റെ സ്റ്റാറ്റസ് 'Available' ആക്കണോ?")) return;
+            try {
+                const response = await fetch(API_URL + '?action=updateBookStatus&bookId=' + encodeURIComponent(bookId), {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error('Network response was not ok: ' + response.status);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showMessage('സ്റ്റാറ്റസ് അപ്‌ഡേറ്റ് ചെയ്തു.');
+                    loadBooks();
+                } else {
+                    showMessage(result.message || 'സ്റ്റാറ്റസ് അപ്‌ഡേറ്റ് ചെയ്യുന്നതിൽ പിശക്.');
+                }
+            } catch (error) {
+                console.error('Update status error:', error);
+                showMessage('സ്റ്റാറ്റസ് അപ്‌ഡേറ്റ് ചെയ്യാൻ നെറ്റ്വർക്ക് പിശക്. ദയവായി വീണ്ടും ശ്രമിക്കുക.');
+            }
+        }
+
+        async function handleNewVoteSubmit(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const topic = document.getElementById('voteTopic').value.trim();
+            const opt1 = document.getElementById('opt1').value.trim();
+            const opt2 = document.getElementById('opt2').value.trim();
+            const opt3 = document.getElementById('opt3').value.trim();
+            if (!topic || !opt1 || !opt2 || !opt3) { showMessage('വോട്ടെടുപ്പ് സജ്ജമാക്കാൻ എല്ലാ ഫീൽഡുകളും പൂരിപ്പിക്കുക.'); return; }
+            btn.disabled = true;
+            btn.innerText = 'സേവ് ചെയ്യുന്നു...';
+            const result = await postJson({ action: 'addNewVote', topic: topic, o1: opt1, o2: opt2, o3: opt3 });
+            if (result.status === 'success') {
+                showMessage('പുതിയ വോട്ടെടുപ്പ് സജ്ജീകരിച്ചു.');
+                e.target.reset();
+            } else {
+                showMessage(result.message || 'വോട്ടെടുപ്പ് സജ്ജീകരിക്കുന്നതിൽ പിശക്.');
+            }
+            btn.disabled = false;
+            btn.innerText = 'വോട്ട് പബ്ലിഷ് ചെയ്യുക';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('noticeForm').addEventListener('submit', handleNoticeSubmit);
+            document.getElementById('achievementForm').addEventListener('submit', handleAchievementSubmit);
+            document.getElementById('addBookForm').addEventListener('submit', handleAddBookSubmit);
+            document.getElementById('newVoteForm').addEventListener('submit', handleNewVoteSubmit);
+            loadBooks();
+        });
     </script>
 </body>
 </html>

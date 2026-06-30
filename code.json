@@ -1,11 +1,30 @@
+function jsonOutput(data, callback) {
+  var json = JSON.stringify(data);
+  var output = callback && callback.toString().trim()
+    ? ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT)
+    : ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+  if (typeof output.setHeader === 'function') {
+    output.setHeader('Access-Control-Allow-Origin', '*');
+    output.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  }
+  return output;
+}
+
+function doOptions(e) {
+  var callback = e && e.parameter && e.parameter.callback ? e.parameter.callback : '';
+  return jsonOutput({ status: 'ok' }, callback);
+}
+
 function doGet(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var action = e && e.parameter ? e.parameter.action : '';
+  var action = e && e.parameter && e.parameter.action ? e.parameter.action.toString().trim() : '';
+  var callback = e && e.parameter && e.parameter.callback ? e.parameter.callback.toString().trim() : '';
 
-  //📸 1. ഗാലറി ഡാറ്റ എടുക്കാൻ (With Likes Count)
+  // Gallery with likes
   if (action === 'gallery') {
-    var gallerySheet = ss.getSheetByName("gallery");
-    var gData = gallerySheet.getDataRange().getValues();
+    var gallerySheet = ss.getSheetByName('gallery');
+    var gData = gallerySheet ? gallerySheet.getDataRange().getValues() : [];
     var photos = [];
     for (var i = 1; i < gData.length; i++) {
       if (!gData[i][0]) continue;
@@ -13,151 +32,436 @@ function doGet(e) {
         imageUrl: gData[i][0],
         userName: gData[i][1],
         caption: gData[i][2],
-        date: gData[i][3] ? Utilities.formatDate(new Date(gData[i][3]), Session.getScriptTimeZone(), "dd-MM-yyyy") : "",
-        likes: gData[i][4] ? parseInt(gData[i][4]) : 0 // Column E (Likes)
+        date: gData[i][3] ? Utilities.formatDate(new Date(gData[i][3]), Session.getScriptTimeZone(), 'dd-MM-yyyy') : '',
+        likes: gData[i][4] ? parseInt(gData[i][4], 10) : 0
       });
     }
-    return ContentService.createTextOutput(JSON.stringify(photos.reverse())).setMimeType(ContentService.MimeType.JSON);
+    return jsonOutput(photos.reverse());
   }
 
-  //📢 2. അറിയിപ്പുകൾ (Notices) എടുക്കാൻ
+  // Notices
   if (action === 'getNotices') {
-    var sheet = ss.getSheetByName("notices");
-    var data = sheet.getDataRange().getValues();
+    var noticesSheet = ss.getSheetByName('notices');
+    var nData = noticesSheet ? noticesSheet.getDataRange().getValues() : [];
     var notices = [];
-    for (var i = 1; i < data.length; i++) {
-      if (!data[i][0]) continue;
-      notices.push({ title: data[i][0], content: data[i][1], date: data[i][2] });
+    for (var i = 1; i < nData.length; i++) {
+      if (!nData[i][0]) continue;
+      notices.push({ title: nData[i][0], content: nData[i][1], date: nData[i][2] });
     }
-    return ContentService.createTextOutput(JSON.stringify(notices.reverse())).setMimeType(ContentService.MimeType.JSON);
+    return jsonOutput(notices.reverse());
   }
 
-  //🏆 3. കുട്ടികളുടെ നേട്ടങ്ങൾ (Achievements) എടുക്കാൻ
+  // Achievements
   if (action === 'getAchievements') {
-    var sheet = ss.getSheetByName("achievements");
-    var data = sheet.getDataRange().getValues();
+    var aSheet = ss.getSheetByName('achievements');
+    var aData = aSheet ? aSheet.getDataRange().getValues() : [];
     var achievements = [];
-    for (var i = 1; i < data.length; i++) {
-      if (!data[i][0]) continue;
-      achievements.push({ imageUrl: data[i][0], title: data[i][1] });
+    for (var i = 1; i < aData.length; i++) {
+      if (!aData[i][0]) continue;
+      achievements.push({ imageUrl: aData[i][0], title: aData[i][1] });
     }
-    return ContentService.createTextOutput(JSON.stringify(achievements.reverse())).setMimeType(ContentService.MimeType.JSON);
+    return jsonOutput(achievements.reverse());
   }
 
-  //🔄 4. അഡ്മിൻ പേജിൽ നിന്നുള്ള റിട്ടേൺ റിക്വസ്റ്റ്
+  // Return book (admin)
   if (action === 'return') {
-    var bookId = e.parameter.bookId;
-    var bookSheet = ss.getSheetByName("book");
-    var data = bookSheet.getDataRange().getValues();
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] && data[i][0].toString().trim() === bookId.toString().trim()) {
-        bookSheet.getRange(i + 1, 7).setValue("Available");
-        return ContentService.createTextOutput(JSON.stringify({"status": "success"})).setMimeType(ContentService.MimeType.JSON);
+    var bookId = e && e.parameter ? e.parameter.bookId : '';
+    var bookSheet = ss.getSheetByName('book');
+    var bData = bookSheet ? bookSheet.getDataRange().getValues() : [];
+    for (var i = 1; i < bData.length; i++) {
+      if (bData[i][0] && bData[i][0].toString().trim() === bookId.toString().trim()) {
+        bookSheet.getRange(i + 1, 7).setValue('Available');
+        return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
       }
     }
-    return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": "Book ID not found"})).setMimeType(ContentService.MimeType.JSON);
+    return jsonOutput({ status: 'error', message: 'Book ID not found' });
   }
 
-  //📚 5. പുസ്തകങ്ങളുടെ ലിസ്റ്റ് എടുക്കുന്നത്
-  var bookSheet = ss.getSheetByName("book");
-  var data = bookSheet.getDataRange().getValues();
-  var books = [];
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    books.push({ bookId: data[i][0], bookName: data[i][1], authorName: data[i][2], description: data[i][3], totalStars: data[i][4], ratingCount: data[i][5], status: data[i][6] });
+  // Get books (general)
+  if (action === 'getBooks') {
+    var bookSheet = ss.getSheetByName('book');
+    var bookingSheet = ss.getSheetByName('bookings');
+    var bData = bookSheet ? bookSheet.getDataRange().getValues() : [];
+    var bookingData = bookingSheet ? bookingSheet.getDataRange().getValues() : [];
+    var bookingMap = {};
+
+    for (var i = 1; i < bookingData.length; i++) {
+      if (!bookingData[i][2]) continue;
+      var bookedBookId = bookingData[i][2].toString().trim();
+      var createdTs = bookingData[i][7] ? new Date(bookingData[i][7]).getTime() : 0;
+      if (!bookingMap[bookedBookId] || createdTs > bookingMap[bookedBookId].createdTs) {
+        bookingMap[bookedBookId] = {
+          returnDate: bookingData[i][6],
+          userName: bookingData[i][1],
+          createdTs: createdTs
+        };
+      }
+    }
+
+    var books = [];
+    for (var i = 1; i < bData.length; i++) {
+      if (!bData[i][0]) continue;
+      var bookId = bData[i][0].toString().trim();
+      var bookingInfo = bookingMap[bookId] || null;
+      var expectedReturn = '';
+      var bookedUserName = '';
+      if (bookingInfo && bookingInfo.returnDate) {
+        expectedReturn = Utilities.formatDate(new Date(bookingInfo.returnDate), Session.getScriptTimeZone(), 'dd/MM/yyyy');
+        bookedUserName = bookingInfo.userName || '';
+      }
+      books.push({
+        bookId: bookId,
+        bookName: bData[i][1],
+        authorName: bData[i][2],
+        description: bData[i][3],
+        totalStars: bData[i][4],
+        ratingCount: bData[i][5],
+        status: bData[i][6],
+        expectedReturn: expectedReturn,
+        bookedUserName: bookedUserName
+      });
+    }
+    return jsonOutput(books, callback);
   }
-  return ContentService.createTextOutput(JSON.stringify(books)).setMimeType(ContentService.MimeType.JSON);
+
+  // Update book status via GET for admin button compatibility
+  if (action === 'updateBookStatus') {
+    var bookId = e && e.parameter ? e.parameter.bookId : '';
+    var bookSheet = ss.getSheetByName('book');
+    var bData = bookSheet ? bookSheet.getDataRange().getValues() : [];
+    for (var i = 1; i < bData.length; i++) {
+      if (bData[i][0] && bData[i][0].toString().trim() === bookId.toString().trim()) {
+        bookSheet.getRange(i + 1, 7).setValue('Available');
+        return jsonOutput({ status: 'success' }, callback);
+      }
+    }
+    return jsonOutput({ status: 'error', message: 'Book ID not found' }, callback);
+  }
+
+  // Get votes (poll)
+  if (action === 'getVotes') {
+    var votesSheet = ss.getSheetByName('votes');
+    var pollSheet = ss.getSheetByName('poll_config');
+    var votes = votesSheet ? votesSheet.getDataRange().getValues() : [];
+    var pData = pollSheet ? pollSheet.getRange(1, 1, 1, 4).getValues() : [['', '', '', '']];
+    var counts = { opt1: 0, opt2: 0, opt3: 0 };
+    var alreadyVoted = false;
+    var userName = e.parameter.userName || '';
+    for (var i = 1; i < votes.length; i++) {
+      var optKey = votes[i][0]; // expects 'opt1'|'opt2'|'opt3'
+      if (counts.hasOwnProperty(optKey)) counts[optKey]++;
+      if (userName && votes[i][1] === userName) alreadyVoted = true;
+    }
+    return jsonOutput({ 
+      opt1: counts.opt1, 
+      opt2: counts.opt2, 
+      opt3: counts.opt3, 
+      alreadyVoted: alreadyVoted,
+      topic: pData[0][0] || '',
+      o1: pData[0][1] || 'Option 1',
+      o2: pData[0][2] || 'Option 2',
+      o3: pData[0][3] || 'Option 3'
+    }, callback);
+  }
+
+  // Vote submit via GET/JSONP
+  if (action === 'submitVote') {
+    var votesSheet = ss.getSheetByName('votes');
+    var vData = votesSheet ? votesSheet.getDataRange().getValues() : [];
+    var alreadyVoted = false;
+    for (var i = 1; i < vData.length; i++) {
+      if (vData[i][1] === e.parameter.userName) { alreadyVoted = true; break; }
+    }
+    if (alreadyVoted) {
+      return jsonOutput({ status: 'error', message: 'നിങ്ങൾ ഇതിനകം വോട്ട് രേഖപ്പെടുത്തിയിട്ടുണ്ട്!' }, callback);
+    }
+    if (votesSheet) votesSheet.appendRow([e.parameter.option, e.parameter.userName, new Date()]);
+    return jsonOutput({ status: 'success' }, callback);
+  }
+
+  // Get posts
+  if (action === 'getPosts') {
+    var postsSheet = ss.getSheetByName('post');
+    var likesSheet = ss.getSheetByName('post_likes');
+    var commentsSheet = ss.getSheetByName('post_comments');
+    var postData = postsSheet ? postsSheet.getDataRange().getValues() : [];
+    var likesData = likesSheet ? likesSheet.getDataRange().getValues() : [];
+    var commentsData = commentsSheet ? commentsSheet.getDataRange().getValues() : [];
+    var likeCounts = {};
+    var commentCounts = {};
+
+    for (var i = 1; i < likesData.length; i++) {
+      if (!likesData[i][0]) continue;
+      likeCounts[likesData[i][0]] = (likeCounts[likesData[i][0]] || 0) + 1;
+    }
+    for (var i = 1; i < commentsData.length; i++) {
+      if (!commentsData[i][1]) continue;
+      commentCounts[commentsData[i][1]] = (commentCounts[commentsData[i][1]] || 0) + 1;
+    }
+
+    var posts = [];
+    for (var i = 1; i < postData.length; i++) {
+      if (!postData[i][0]) continue;
+      posts.push({
+        postId: postData[i][0],
+        userName: postData[i][1],
+        title: postData[i][2],
+        content: postData[i][3],
+        likeCount: likeCounts[postData[i][0]] || parseInt(postData[i][4] || 0, 10) || 0,
+        commentCount: commentCounts[postData[i][0]] || 0,
+        createdDate: postData[i][5] ? Utilities.formatDate(new Date(postData[i][5]), Session.getScriptTimeZone(), 'dd-MM-yyyy') : ''
+      });
+    }
+    return jsonOutput(posts.reverse(), callback);
+  }
+
+  if (action === 'getPostComments') {
+    var commentsSheet = ss.getSheetByName('post_comments');
+    var commentsData = commentsSheet ? commentsSheet.getDataRange().getValues() : [];
+    var postId = e.parameter.postId || '';
+    var results = [];
+    for (var i = 1; i < commentsData.length; i++) {
+      if (!commentsData[i][0] || commentsData[i][1] !== postId) continue;
+      results.push({
+        commentId: commentsData[i][0],
+        postId: commentsData[i][1],
+        userName: commentsData[i][2],
+        comment: commentsData[i][3],
+        date: commentsData[i][4] ? Utilities.formatDate(new Date(commentsData[i][4]), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm') : ''
+      });
+    }
+    return jsonOutput(results.reverse(), callback);
+  }
+
+  // Add post via GET/JSONP
+  if (action === 'addPost') {
+    var postSheet = ss.getSheetByName('post');
+    if (postSheet) postSheet.appendRow([e.parameter.postId, e.parameter.userName, e.parameter.title, e.parameter.content, 0, new Date()]);
+    return jsonOutput({ status: 'success' }, callback);
+  }
+
+  if (action === 'addLike') {
+    var likesSheet = ss.getSheetByName('post_likes');
+    var likesData = likesSheet ? likesSheet.getDataRange().getValues() : [];
+    var alreadyLiked = false;
+    for (var i = 1; i < likesData.length; i++) {
+      if (likesData[i][0] === e.parameter.postId && likesData[i][1] === e.parameter.userName) {
+        alreadyLiked = true;
+        break;
+      }
+    }
+    if (alreadyLiked) return jsonOutput({ status: 'error', message: 'You already liked this post.' }, callback);
+    if (likesSheet) likesSheet.appendRow([e.parameter.postId, e.parameter.userName, new Date()]);
+    return jsonOutput({ status: 'success' }, callback);
+  }
+
+  if (action === 'addComment') {
+    var commentsSheet = ss.getSheetByName('post_comments');
+    if (commentsSheet) commentsSheet.appendRow([e.parameter.commentId, e.parameter.postId, e.parameter.userName, e.parameter.comment, new Date()]);
+    return jsonOutput({ status: 'success' }, callback);
+  }
+
+  return jsonOutput({ status: 'error', message: 'Invalid Request' }, callback);
+}
+
+function getDriveViewUrl(file) {
+  var fileId = file.getId ? file.getId() : null;
+  if (!fileId) {
+    var url = file.getUrl ? file.getUrl() : '';
+    var match = url.match(/\/d\/([^/]+)/) || url.match(/id=([^&]+)/);
+    fileId = match && match[1] ? match[1] : '';
+  }
+  return fileId ? 'https://drive.google.com/uc?export=view&id=' + fileId : '';
 }
 
 function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var data = JSON.parse(e.postData.contents);
+    var data = {};
+    if (e && e.postData && e.postData.contents) {
+      try {
+        data = JSON.parse(e.postData.contents);
+      } catch (jsonErr) {
+        data = e.parameter || {};
+      }
+    } else {
+      data = e.parameter || {};
+    }
+    var action = data.action;
 
-    // 1. ഫോട്ടോ അപ്‌ലോഡ്
-    if (data && data.action === 'upload') {
-      var gallerySheet = ss.getSheetByName("gallery");
+    if (action === 'upload') {
+      var gallerySheet = ss.getSheetByName('gallery');
       var decodedImg = Utilities.base64Decode(data.imageBytes);
       var blob = Utilities.newBlob(decodedImg, data.mimeType, data.fileName);
-      var folder = DriveApp.getFolderById("1Y8oGF-745kgKQoDu828QK0Rj5wpGhF6m");
+      var folder = DriveApp.getFolderById('1Y8oGF-745kgKQoDu828QK0Rj5wpGhF6m');
       var file = folder.createFile(blob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      gallerySheet.appendRow([file.getUrl(), data.userName, data.caption, new Date(), 0]);
-      return ContentService.createTextOutput(JSON.stringify({"status": "success"})).setMimeType(ContentService.MimeType.JSON);
+      var imageUrl = getDriveViewUrl(file) || file.getUrl();
+      if (gallerySheet) gallerySheet.appendRow([imageUrl, data.userName, data.caption, new Date(), 0]);
+      return jsonOutput({ status: 'success' });
     }
 
-    // 2. ലൈക്ക് ചെയ്യൽ
-    if (data.action === 'likePhoto') {
-      var sheet = ss.getSheetByName("likes");
-      var gallerySheet = ss.getSheetByName("gallery");
-      var dataRange = sheet.getDataRange().getValues();
-      var alreadyLiked = dataRange.some(function(row) { return row[0] === data.photoId && row[1] === data.userName; });
-      if (alreadyLiked) return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": "ഇതിനകം ലൈക്ക് ചെയ്തു!"})).setMimeType(ContentService.MimeType.JSON);
-      sheet.appendRow([data.photoId, data.userName]);
-      var gData = gallerySheet.getDataRange().getValues();
-      for(var i=1; i<gData.length; i++) {
-        if(gData[i][0] === data.photoId) {
-          gallerySheet.getRange(i+1, 5).setValue(parseInt(gData[i][4] || 0) + 1);
+    if (action === 'likePhoto') {
+      var likesSheet = ss.getSheetByName('likes');
+      var gallerySheet = ss.getSheetByName('gallery');
+      var likesData = likesSheet ? likesSheet.getDataRange().getValues() : [];
+      var alreadyLiked = likesData.some(function(row) { return row[0] === data.photoId && row[1] === data.userName; });
+      if (alreadyLiked) return jsonOutput({ status: 'error', message: 'ഇതിനകം ലൈക്ക് ചെയ്തു!' });
+      if (likesSheet) likesSheet.appendRow([data.photoId, data.userName]);
+      var gData = gallerySheet ? gallerySheet.getDataRange().getValues() : [];
+      for (var i = 1; i < gData.length; i++) {
+        if (gData[i][0] === data.photoId) {
+          gallerySheet.getRange(i + 1, 5).setValue(parseInt(gData[i][4] || 0, 10) + 1);
           break;
         }
       }
-      return ContentService.createTextOutput(JSON.stringify({"status": "success"})).setMimeType(ContentService.MimeType.JSON);
+      return jsonOutput({ status: 'success' });
     }
 
-    // 3. രജിസ്ട്രേഷൻ
-    if (data && data.action === 'register') {
-      var userSheet = ss.getSheetByName("users");
-      userSheet.appendRow([data.phone, data.password, data.name]);
-      return ContentService.createTextOutput(JSON.stringify({"status": "success"})).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // 4. ലോഗിൻ
-    if (data && data.action === 'login') {
-      var userSheet = ss.getSheetByName("users");
-      var uData = userSheet.getDataRange().getValues();
-      for (var i = 1; i < uData.length; i++) {
-        if (uData[i][0] == data.phone && uData[i][1] == data.password) {
-          return ContentService.createTextOutput(JSON.stringify({"status": "success", "userName": uData[i][2]})).setMimeType(ContentService.MimeType.JSON);
+    if (action === 'deleteImage') {
+      var gallerySheet = ss.getSheetByName('gallery');
+      var deleted = false;
+      if (gallerySheet) {
+        var gData = gallerySheet.getDataRange().getValues();
+        for (var i = gData.length - 1; i >= 1; i--) {
+          if (gData[i][0] == data.imageUrl && gData[i][1] == data.userName) {
+            gallerySheet.deleteRow(i + 1);
+            deleted = true;
+            break;
+          }
         }
       }
-      return ContentService.createTextOutput(JSON.stringify({"status": "error"})).setMimeType(ContentService.MimeType.JSON);
+      if (!deleted) return jsonOutput({ status: 'error', message: 'Image not found or access denied' });
+      var likesSheet = ss.getSheetByName('likes');
+      if (likesSheet) {
+        var likesData = likesSheet.getDataRange().getValues();
+        for (var i = likesData.length - 1; i >= 1; i--) {
+          if (likesData[i][0] == data.imageUrl) likesSheet.deleteRow(i + 1);
+        }
+      }
+      return jsonOutput({ status: 'success' });
     }
 
-    // 5. അറിയിപ്പുകൾ (അഡ്മിൻ)
-    if (data && data.action === 'addNotice') {
-      ss.getSheetByName("notices").appendRow([data.title, data.content, new Date()]);
-      return ContentService.createTextOutput(JSON.stringify({"status": "success"})).setMimeType(ContentService.MimeType.JSON);
+    if (action === 'register') {
+      var userSheet = ss.getSheetByName('users');
+      // Store phone in A, email in B (if available), password in C, and user name in I
+      if (userSheet) userSheet.appendRow([data.phone, '', data.password, '', '', '', '', '', data.name]);
+      return jsonOutput({ status: 'success' });
     }
 
-    // 6. നേട്ടങ്ങൾ (അഡ്മിൻ)
-    if (data && data.action === 'addAchievement') {
-      var blob = Utilities.newBlob(Utilities.base64Decode(data.imageBytes), data.mimeType, data.fileName);
-      var fileUrl = DriveApp.getFolderById("1Y8oGF-745kgKQoDu828QK0Rj5wpGhF6m").createFile(blob).getUrl();
-      ss.getSheetByName("achievements").appendRow([fileUrl, data.title, new Date()]);
-      return ContentService.createTextOutput(JSON.stringify({"status": "success"})).setMimeType(ContentService.MimeType.JSON);
+    if (action === 'login') {
+      var userSheet = ss.getSheetByName('users');
+      var uData = userSheet ? userSheet.getDataRange().getValues() : [];
+      for (var i = 1; i < uData.length; i++) {
+        if (uData[i][0] == data.phone && uData[i][2] == data.password) {
+          var loginName = uData[i][8] || '';
+          return jsonOutput({ status: 'success', userName: loginName });
+        }
+      }
+      return jsonOutput({ status: 'error' });
     }
 
-    return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": "Invalid Action"})).setMimeType(ContentService.MimeType.JSON);
-    
-  } catch(e) {
-    return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": e.toString()})).setMimeType(ContentService.MimeType.JSON);
+    if (action === 'addNotice') {
+      var nSheet = ss.getSheetByName('notices');
+      if (nSheet) nSheet.appendRow([data.title, data.content, new Date()]);
+      return jsonOutput({ status: 'success' });
+    }
+
+    if (action === 'addAchievement') {
+      var folder = DriveApp.getFolderById('1Y8oGF-745kgKQoDu828QK0Rj5wpGhF6m');
+      var file = folder.createFile(Utilities.newBlob(Utilities.base64Decode(data.imageBytes), data.mimeType, data.fileName));
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      var imageUrl = getDriveViewUrl(file) || file.getUrl();
+      var aSheet = ss.getSheetByName('achievements');
+      if (aSheet) aSheet.appendRow([imageUrl, data.title, new Date()]);
+      return jsonOutput({ status: 'success' });
+    }
+
+    if (action === 'addBook') {
+      var bookSheet = ss.getSheetByName('book');
+      if (bookSheet) bookSheet.appendRow([data.bookId, data.bookName, data.authorName, data.description || '', 0, 0, data.status || 'Available']);
+      return jsonOutput({ status: 'success' });
+    }
+
+    if (action === 'addBooking') {
+      var bookingSheet = ss.getSheetByName('bookings');
+      if (bookingSheet) bookingSheet.appendRow([data.bookingId, data.userName, data.bookId, data.bookName, data.authorName, data.bookedDate, data.returnDate, new Date()]);
+      var bookSheet = ss.getSheetByName('book');
+      var bData = bookSheet ? bookSheet.getDataRange().getValues() : [];
+      for (var i = 1; i < bData.length; i++) {
+        if (bData[i][0] == data.bookId) { bookSheet.getRange(i + 1, 7).setValue('Not Available'); break; }
+      }
+      return jsonOutput({ status: 'success' });
+    }
+
+    if (action === 'submitVote') {
+      var vSheet = ss.getSheetByName('votes');
+      var vData = vSheet ? vSheet.getDataRange().getValues() : [];
+      var alreadyVoted = vData.some(function(row) { return row[1] === data.userName; });
+      if (alreadyVoted) return jsonOutput({ status: 'error', message: 'നിങ്ങൾ ഇതിനകം വോട്ട് രേഖപ്പെടുത്തിയിട്ടുണ്ട്!' });
+      if (vSheet) vSheet.appendRow([data.option, data.userName, new Date()]);
+      return jsonOutput({ status: 'success' });
+    }
+
+    if (action === 'addPost') {
+      var postSheet = ss.getSheetByName('post');
+      if (postSheet) postSheet.appendRow([data.postId, data.userName, data.title, data.content, 0, new Date()]);
+      return jsonOutput({ status: 'success' });
+    }
+
+    if (action === 'deletePost') {
+      var postSheet = ss.getSheetByName('post');
+      var deleted = false;
+      if (postSheet) {
+        var postsData = postSheet.getDataRange().getValues();
+        for (var i = postsData.length - 1; i >= 1; i--) {
+          if (postsData[i][0] == data.postId && postsData[i][1] == data.userName) {
+            postSheet.deleteRow(i + 1);
+            deleted = true;
+            break;
+          }
+        }
+      }
+      if (!deleted) return jsonOutput({ status: 'error', message: 'Post not found or access denied' });
+      var likesSheet = ss.getSheetByName('post_likes');
+      if (likesSheet) {
+        var likesData = likesSheet.getDataRange().getValues();
+        for (var i = likesData.length - 1; i >= 1; i--) {
+          if (likesData[i][0] == data.postId) likesSheet.deleteRow(i + 1);
+        }
+      }
+      var commentsSheet = ss.getSheetByName('post_comments');
+      if (commentsSheet) {
+        var commentsData = commentsSheet.getDataRange().getValues();
+        for (var i = commentsData.length - 1; i >= 1; i--) {
+          if (commentsData[i][1] == data.postId) commentsSheet.deleteRow(i + 1);
+        }
+      }
+      return jsonOutput({ status: 'success' });
+    }
+
+    if (action === 'updateBookStatus') {
+      var sheet = ss.getSheetByName('book');
+      var rows = sheet ? sheet.getDataRange().getValues() : [];
+      for (var i = 1; i < rows.length; i++) { if (rows[i][0] == data.bookId) { sheet.getRange(i + 1, 7).setValue('Available'); break; } }
+      return jsonOutput({ status: 'success' });
+    }
+
+    if (action === 'addNewVote') {
+      ss.getSheetByName('poll_config').getRange(1, 1, 1, 4).setValues([[data.topic, data.o1, data.o2, data.o3]]);
+      ss.getSheetByName('votes').clearContents();
+      return jsonOutput({ status: 'success' });
+    }
+
+    if (action === 'deleteVotes') {
+      ss.getSheetByName('votes').clearContents();
+      return jsonOutput({ status: 'success' });
+    }
+
+    return jsonOutput({ status: 'error', message: 'Invalid Action' });
+  } catch (e) {
+    return jsonOutput({ status: 'error', message: e.toString() });
   }
-
-  // 🗳️ വോട്ടിംഗ് ലോജിക്
-if (data && data.action === 'submitVote') {
-    var sheet = ss.getSheetByName("votes"); 
-    var dataRange = sheet.getDataRange().getValues();
-    
-    // ആ യൂസർ ഇതിനകം വോട്ട് ചെയ്തിട്ടുണ്ടോ എന്ന് പരിശോധിക്കുന്നു
-    var alreadyVoted = dataRange.some(function(row) { return row[1] === data.userName; });
-    
-    if (alreadyVoted) {
-        return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": "നിങ്ങൾ ഇതിനകം വോട്ട് രേഖപ്പെടുത്തിയിട്ടുണ്ട്!"})).setMimeType(ContentService.MimeType.JSON);
-    } else {
-        sheet.appendRow([data.option, data.userName, new Date()]);
-        return ContentService.createTextOutput(JSON.stringify({"status": "success"})).setMimeType(ContentService.MimeType.JSON);
-    }
-}
 }
 
 function forceMyAuth() {

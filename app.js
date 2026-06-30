@@ -54,8 +54,8 @@ function loadGlobalMenu() {
                 <a href="index.html" class="${currentFile === 'index.html' ? 'active' : ''}">ഹോം</a>
                 <a href="library.html" class="${currentFile === 'library.html' || currentFile === 'booking.html' ? 'active' : ''}">ലൈബ്രറി</a>
                 <a href="gallery.html" class="${currentFile === 'gallery.html' ? 'active' : ''}">ഗാലറി</a>
-                <a href="posts.html" class="${currentFile === 'posts.html' ? 'active' : ''}">Posts</a>
                 <a href="events.html" class="${currentFile === 'events.html' ? 'active' : ''}">പരിപാടികൾ</a>
+                <a href="post.html" class="${currentFile === 'post.html' ? 'active' : ''}">പോസ്റ്റ്</a>
                 <a href="vote.html" class="${currentFile === 'vote.html' ? 'active' : ''}">വോട്ട്</a>
                 <a href="about.html" class="${currentFile === 'about.html' ? 'active' : ''}">ഞങ്ങളെക്കുറിച്ച്</a>
                 ${mobileLogoutHTML}
@@ -76,18 +76,77 @@ function loadGlobalMenu() {
     }
 }
 
-// 🔄 ഗൂഗിൾ ഡ്രൈവ് ലിങ്കുകളെ പുതിയ ഡയറക്ട് ഇമേജ് ലിങ്കാക്കി മാറ്റുന്ന ഫങ്ഷൻ
+// 🔄 ഗൂഗിൾ ഡ്രൈവ് ലിങ്കുകളെ പുതിയ ഡയറക്ട് ഇമേജ് ലിങ്കായി മാറ്റുന്ന ഫങ്ഷൻ
 function cleanDriveLink(url) {
     if (!url) return '';
     const strUrl = url.toString().trim();
-    if (strUrl.includes('drive.google.com')) {
-        const match = strUrl.match(/\/d\/([^/]+)/) || strUrl.match(/id=([^&]+)/);
-        if (match && match[1]) {
-            // ✅ ഡ്രൈവ് ഇമേജ് കാണിക്കാൻ പുതിയ ഗൂഗിൾ യൂസർകണ്ടന്റ് ഹോസ്റ്റിംഗ് ഉപയോഗിക്കുന്നു
-            return `https://lh3.googleusercontent.com/d/${match[1]}`;
+    const normalized = strUrl.replace(/\s+/g, '');
+    const driveIdMatch = normalized.match(/\/d\/([^/]+)/) || normalized.match(/id=([^&]+)/) || normalized.match(/googleusercontent\.com\/d\/([^/?]+)/);
+    if (driveIdMatch && driveIdMatch[1]) {
+        return `https://drive.google.com/uc?export=view&id=${driveIdMatch[1]}`;
+    }
+    if (normalized.includes('uc?export=view') || normalized.includes('uc?export=download')) {
+        return normalized.replace('uc?export=download', 'uc?export=view');
+    }
+    return normalized;
+}
+
+function buildDriveImageUrls(url) {
+    const primary = cleanDriveLink(url);
+    const urls = [];
+    if (!primary) return urls;
+    urls.push(primary);
+    const idMatch = primary.match(/id=([^&]+)/);
+    if (idMatch && idMatch[1]) {
+        urls.push(`https://drive.google.com/uc?export=download&id=${idMatch[1]}`);
+        urls.push(`https://drive.google.com/thumbnail?id=${idMatch[1]}`);
+        urls.push(`https://drive.google.com/thumbnail?sz=w320&id=${idMatch[1]}`);
+        urls.push(`https://docs.google.com/uc?export=view&id=${idMatch[1]}`);
+        urls.push(`https://docs.google.com/uc?export=download&id=${idMatch[1]}`);
+    }
+    if (primary.includes('uc?export=view')) {
+        urls.push(primary.replace('uc?export=view', 'uc?export=download'));
+    }
+    if (primary.includes('uc?export=download')) {
+        urls.push(primary.replace('uc?export=download', 'uc?export=view'));
+    }
+    return [...new Set(urls.filter(Boolean))];
+}
+
+function tryDriveFallback(img, urlArray) {
+    if (!img) return;
+    let urls = urlArray;
+    if (!Array.isArray(urls)) {
+        const datasetValue = img.dataset && img.dataset.fallback;
+        if (typeof urlArray === 'string' && urlArray.trim()) {
+            try {
+                urls = JSON.parse(decodeURIComponent(urlArray));
+            } catch (e) {
+                try { urls = JSON.parse(urlArray); } catch (e2) { urls = null; }
+            }
+        } else if (datasetValue) {
+            try {
+                urls = JSON.parse(decodeURIComponent(datasetValue));
+            } catch (e) {
+                try { urls = JSON.parse(datasetValue); } catch (e2) { urls = null; }
+            }
         }
     }
-    return strUrl;
+    if (!Array.isArray(urls) || urls.length === 0) {
+        img.onerror = null;
+        img.src = 'https://placehold.co/600x400?text=Image+Not+Found';
+        return;
+    }
+    const current = img.src || '';
+    const index = urls.findIndex(u => u === current);
+    const nextIndex = index < 0 ? 0 : index + 1;
+    if (nextIndex >= urls.length) {
+        img.onerror = null;
+        img.src = 'https://placehold.co/600x400?text=Image+Not+Found';
+        return;
+    }
+    img.onerror = function() { tryDriveFallback(img, urls); };
+    img.src = urls[nextIndex];
 }
 
 // 🚪 ലോഗൗട്ട് ഫങ്ഷൻ
@@ -150,9 +209,7 @@ async function fetchLibraryBooks() {
     const bookListContainer = document.getElementById('live-book-list');
     if (!bookListContainer) return; 
 
-    try {
-        const response = await fetch(WEB_APP_URL);
-        const books = await response.json();
+    window.handleLibraryBooks = function(books) {
         if (!books || books.length === 0) {
             bookListContainer.innerHTML = `<p style="text-align: center;">ലൈബ്രറിയിൽ പുസ്തകങ്ങൾ ഒന്നും കണ്ടെത്തിയില്ല!</p>`;
             return;
@@ -175,6 +232,9 @@ async function fetchLibraryBooks() {
             const bookCard = document.createElement('div');
             bookCard.className = 'book-card';
             bookCard.setAttribute('data-id', book.bookId);
+            const bookingDetails = isUnavailable && book.expectedReturn && book.bookedUserName
+                ? `<p style="margin:10px 0 0; color:#b02a37; font-size:13px;"> ${book.expectedReturn} ന് തിരികെ ക്ലബ്ബിൽ എത്തുമെന്ന് പ്രദീക്ഷിക്കുന്നു.`
+                : '';
             bookCard.innerHTML = `
                 <div class="book-info">
                     <h3 class="b-title" style="color: #0f5132; margin-bottom: 5px;">${book.bookName}</h3>
@@ -183,6 +243,7 @@ async function fetchLibraryBooks() {
                     <span class="status-tag" style="font-size: 12px; font-weight: bold; color: ${isUnavailable ? '#dc3545' : '#198754'};">
                         <i class="fa-solid ${isUnavailable ? 'fa-circle-xmark' : 'fa-circle-check'}"></i> ${isUnavailable ? 'നിലവിൽ ലഭ്യമല്ല' : 'ലഭ്യമാണ്'}
                     </span>
+                    ${bookingDetails}
                 </div>
                 <div class="book-actions" style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between;">
                     <div class="star-rating-block">
@@ -194,9 +255,16 @@ async function fetchLibraryBooks() {
             bookListContainer.appendChild(bookCard);
         });
         activateBookButtons();
-    } catch (error) {
-        bookListContainer.innerHTML = `<p style="text-align: center; color: red;">പുസ്തകങ്ങൾ ലോഡ് ചെയ്യാൻ സാധിച്ചില്ല.</p>`;
-    }
+    };
+
+    const script = document.createElement('script');
+    script.src = `${WEB_APP_URL}?action=getBooks&callback=handleLibraryBooks`;
+    script.onerror = function(err) {
+        console.error('Library load failed', err);
+        bookListContainer.innerHTML = `<p style="text-align: center; color: red;">ലൈബ്രറി ഡാറ്റ ലഭിച്ചില്ല. വീണ്ടും ശ്രമിക്കുക.</p>`;
+    };
+    document.body.appendChild(script);
+    return;
 }
 
 function activateBookButtons() {
@@ -245,7 +313,7 @@ function initBookingForm() {
     const bookingData = {
         action: 'addBooking',
         bookingId: "BK-" + Math.floor(1000 + Math.random() * 9000),
-        userPhone: localStorage.getItem('loggedInPhone') || "",
+        userName: localStorage.getItem('loggedInUser') || "",
         bookId: localStorage.getItem('selectedBookId'),
         bookName: bookField.value,
         authorName: authorField.value,
@@ -300,15 +368,14 @@ async function loadHomeDynamicData() {
             if(achievements && achievements.length > 0) {
                 achievementContainer.innerHTML = '';
                 achievements.forEach(a => {
-                    // 🔄 ഷീറ്റിൽ നിന്നും വരാൻ സാധ്യതയുള്ള എല്ലാവിധ കോളം പേരുകളും ഇവിടെ സപ്പോർട്ട് ചെയ്യുന്നു
                     const rawImgUrl = a.imageUrl || a.image || a.imageLink || a.Image || a.ImageUrl || '';
-                    const cleanImgUrl = cleanDriveLink(rawImgUrl);
-                    
+                    const imgUrls = buildDriveImageUrls(rawImgUrl);
+                    const mainImg = imgUrls[0] || 'https://lh3.googleusercontent.com/d/1aKay44TSxlxb1n-F9MeCmYM3agZctf0p';
                     const titleText = a.title || a.name || a.heading || a.Title || a.Name || '';
 
                     achievementContainer.innerHTML += `
                         <div class="carousel-item" style="text-align:center; min-width:220px;">
-                            <img src="${cleanImgUrl || 'https://lh3.googleusercontent.com/d/1aKay44TSxlxb1n-F9MeCmYM3agZctf0p'}" alt="Achievement" style="width:100%; height:300px; object-fit:cover; border-radius:4px; margin-bottom:8px;">
+                            <img src="${mainImg}" data-fallback="${encodeURIComponent(JSON.stringify(imgUrls))}" alt="Achievement" style="width:100%; height:300px; object-fit:cover; border-radius:4px; margin-bottom:8px;" onerror="tryDriveFallback(this)">
                             <p style="margin-top:8px; font-weight:bold; font-size:16px;">${titleText}</p>
                         </div>`;
                 });

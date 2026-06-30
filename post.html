@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>നവയുഗ ക്ലബ് - പോസ്റ്റ്</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        .post-card {
+            background: white;
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .post-card h3 {
+            margin-bottom: 8px;
+            color: #0f5132;
+        }
+        .post-card p {
+            color: #444;
+            line-height: 1.6;
+        }
+        .post-card .meta {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            color: #555;
+            font-size: 13px;
+        }
+        .post-card .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .post-form {
+            background: white;
+            border-radius: 10px;
+            padding: 22px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 26px;
+        }
+        .post-form label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #1f2d2a;
+        }
+        .post-form input,
+        .post-form textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 15px;
+            background: #fff;
+        }
+        .post-form textarea {
+            min-height: 140px;
+            resize: vertical;
+        }
+        .posts-title {
+            margin-bottom: 16px;
+            color: #0c3f2e;
+        }
+        .status-message {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: none;
+        }
+        .status-message.success { background: #d1e7dd; color: #0f5132; }
+        .status-message.error { background: #f8d7da; color: #842029; }
+        .post-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 16px; }
+        .post-actions button { padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .post-actions .like-btn { background: #198754; color: white; }
+        .post-actions .comment-toggle-btn { background: #0d6efd; color: white; }
+        .comment-section { margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 14px; display: none; }
+        .comment-section.active { display: block; }
+        .comment-list { display: grid; gap: 12px; margin-bottom: 16px; }
+        .comment-card { background: #f8fafc; border-radius: 8px; padding: 12px 14px; }
+        .comment-card p { margin: 0; color: #2c3e50; }
+        .comment-card .comment-meta { margin-top: 8px; font-size: 13px; color: #475569; display: flex; gap: 12px; flex-wrap: wrap; }
+        .comment-form textarea { min-height: 90px; }
+        .comment-form button { background: #0d6efd; color: #fff; width: 100%; }
+    </style>
+</head>
+<body>
+    <div id="header-placeholder"></div>
+    <main class="container">
+        <section class="form-container">
+            <h2 class="posts-title">പോസ്റ്റ് ചെയ്യുക</h2>
+            <div class="post-form">
+                <div id="post-status" class="status-message"></div>
+                <form id="post-entry-form">
+                    <label for="post-title">ശീര്‍ഷകം</label>
+                    <input type="text" id="post-title" name="title" placeholder="പോസ്റ്റ് ടൈറ്റിൽ നൽകുക" required>
+
+                    <label for="post-content">വിവരണം</label>
+                    <textarea id="post-content" name="content" placeholder="ഇന്ത്യനെക്കുറിച്ചോ, ക്ലബ്ബിനെക്കുറിച്ചോ ലേഖനം എഴുതാം" required></textarea>
+
+                    <button type="submit" class="btn">പോസ്റ്റ് ചെയ്യുക</button>
+                </form>
+            </div>
+
+            <section>
+                <h2 class="posts-title">അവസാന പോസ്റ്റുകൾ</h2>
+                <div id="posts-list"></div>
+            </section>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>© 2026 നവയുഗ ക്ലബ്. എല്ലാ അവകാശങ്ങളും നിക്ഷിപ്തം.</p>
+            <p>Designed and developed by <strong>Deepak NP</strong></p>
+            <div class="social-links">
+                <a href="#"><i class="fa-brands fa-facebook"></i></a>
+                <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                <a href="#"><i class="fa-brands fa-youtube"></i></a>
+            </div>
+            <div class="app-downloads">
+                <p style="margin-top: 15px; font-size: 0.9em;">മൊബൈൽ ആപ്പ് ഡൗൺലോഡ് ചെയ്യൂ:</p>
+                <div class="store-links">
+                    <a href="path/to/your-app.apk" class="app-btn" download>
+                        <i class="fa-brands fa-android"></i> Android
+                    </a>
+                    <a href="https://apps.apple.com/your-app-link" class="app-btn" target="_blank">
+                        <i class="fa-brands fa-apple"></i> iOS
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        function setPostStatus(message, type) {
+            const statusBox = document.getElementById('post-status');
+            if (!statusBox) return;
+            statusBox.textContent = message;
+            statusBox.className = 'status-message ' + (type === 'error' ? 'error' : 'success');
+            statusBox.style.display = 'block';
+        }
+
+        function clearPostStatus() {
+            const statusBox = document.getElementById('post-status');
+            if (!statusBox) return;
+            statusBox.style.display = 'none';
+            statusBox.textContent = '';
+        }
+
+        function renderPostList(posts) {
+            const list = document.getElementById('posts-list');
+            if (!list) return;
+            if (!posts || posts.length === 0) {
+                list.innerHTML = '<p>കൂടുതൽ പോസ്റ്റുകൾ ലഭ്യമല്ല.</p>';
+                return;
+            }
+            list.innerHTML = '';
+            posts.forEach(post => {
+                const card = document.createElement('div');
+                card.className = 'post-card';
+                card.innerHTML = `
+                    <h3>${post.title || 'Untitled'}</h3>
+                    <p>${post.content || ''}</p>
+                    <div class="meta">
+                        <span><i class="fa-solid fa-user"></i> ${post.userName || 'അജ്ഞാതം'}</span>
+                        <span><i class="fa-solid fa-heart"></i> ${post.likeCount || 0} ലൈക്ക്</span>
+                        <span><i class="fa-solid fa-comments"></i> ${post.commentCount || 0} അഭിപ്രായങ്ങൾ</span>
+                        <span><i class="fa-solid fa-calendar-days"></i> ${post.createdDate || ''}</span>
+                    </div>
+                    <div class="post-actions">
+                        <button class="like-btn" data-post-id="${post.postId}">Like</button>
+                        <button class="comment-btn" data-post-id="${post.postId}">Comments</button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+            attachPostActions();
+        }
+
+        function attachPostActions() {
+            document.querySelectorAll('.like-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const postId = btn.getAttribute('data-post-id');
+                    const userName = localStorage.getItem('loggedInUser');
+                    if (!userName) { setPostStatus('ലസ് ചെയ്യാൻ ലോഗിൻ ചെയ്യുക.', 'error'); return; }
+                    try {
+                        const result = await submitJsonpAction('addLike', { postId, userName });
+                        if (result.status === 'success') {
+                            setPostStatus('ലイク് അഭിവൃദ്ധി.', 'success');
+                            fetchPosts();
+                        } else {
+                            setPostStatus(result.message || 'Already liked.', 'error');
+                        }
+                    } catch (err) {
+                        setPostStatus('Like തുടരുമ്പോൾ പിഴവേൽക്കുന്നു: ' + err.message, 'error');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.comment-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const postId = btn.getAttribute('data-post-id');
+                    window.location.href = `comment.html?postId=${encodeURIComponent(postId)}`;
+                });
+            });
+        }
+
+        function submitJsonpAction(action, params) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonpCallback_' + Math.random().toString(36).substring(2, 10);
+                window[callbackName] = function(result) {
+                    delete window[callbackName];
+                    resolve(result || { status: 'error', message: 'Invalid response' });
+                };
+                const script = document.createElement('script');
+                const query = new URLSearchParams(Object.assign({ action, callback: callbackName }, params));
+                query.append('t', Date.now());
+                script.src = `${WEB_APP_URL}?${query.toString()}`;
+                script.onload = function() { document.body.removeChild(script); };
+                script.onerror = function() {
+                    delete window[callbackName];
+                    reject(new Error('JSONP request failed'));
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+        async function fetchPosts() {
+            const list = document.getElementById('posts-list');
+            if (!list) return;
+            list.innerHTML = '<p>പോസ്റ്റുകൾ ലോഡ് ചെയ്യുന്നു...</p>';
+            try {
+                const res = await fetch(`${WEB_APP_URL}?action=getPosts`);
+                const posts = await res.json();
+                renderPostList(posts);
+            } catch (err) {
+                console.error('fetchPosts error', err);
+                list.innerHTML = '<p style="color:red;">പോസ്റ്റുകൾ ലോഡ് ചെയ്യാൻ സാധിച്ചില്ല.</p>';
+            }
+        }
+
+        function submitPost(data) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'handlePostSubmit_' + Date.now();
+                window[callbackName] = function(result) {
+                    delete window[callbackName];
+                    resolve(result || { status: 'error', message: 'Invalid response' });
+                };
+                const script = document.createElement('script');
+                const params = new URLSearchParams({
+                    action: 'addPost',
+                    callback: callbackName,
+                    postId: data.postId,
+                    userName: data.userName,
+                    title: data.title,
+                    content: data.content,
+                    t: Date.now()
+                });
+                script.src = `${WEB_APP_URL}?${params.toString()}`;
+                script.onload = function() {
+                    document.body.removeChild(script);
+                };
+                script.onerror = function(err) {
+                    delete window[callbackName];
+                    reject(new Error('JSONP script load failed'));
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('post-entry-form');
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    clearPostStatus();
+                    const title = document.getElementById('post-title').value.trim();
+                    const content = document.getElementById('post-content').value.trim();
+                    const userName = localStorage.getItem('loggedInUser');
+                    if (!userName) {
+                        setPostStatus('വെള്ളമെടുക്കുന്നതിന് ഡയവായി ആദ്യം ലോഗിൻ ചെയ്യുക.', 'error');
+                        return;
+                    }
+                    if (!title || !content) {
+                        setPostStatus('ദയവായി തലക്കെട്ടും വിവരണവും നൽകുക.', 'error');
+                        return;
+                    }
+                    const payload = {
+                        action: 'addPost',
+                        postId: 'POST-' + Date.now(),
+                        userName: userName,
+                        title: title,
+                        content: content
+                    };
+                    try {
+                        const result = await submitPost(payload);
+                        if (result.status === 'success') {
+                            setPostStatus('നിങ്ങളുടെ പോസ്റ്റ് വിജയകരമായി ചേർത്തു.', 'success');
+                            form.reset();
+                            fetchPosts();
+                        } else {
+                            setPostStatus(result.message || 'പോസ്റ്റ് സേവ് ചെയ്യാൻ പരാജയം.', 'error');
+                        }
+                    } catch (err) {
+                        console.error('submitPost error', err);
+                        setPostStatus('സർവർയിലേക്ക് പോസ്റ്റ് അയക്കാൻ സാധിച്ചില്ല: ' + err.message, 'error');
+                    }
+                });
+            }
+            fetchPosts();
+        });
+    </script>
+</body>
+</html>

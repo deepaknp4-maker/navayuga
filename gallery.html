@@ -140,11 +140,11 @@
                 
                 grid.innerHTML = '';
                 photos.forEach(photo => {
-                    // അപ്ലൈഡ് ഇമേജ് ലിങ്ക് ക്ലീൻ ചെയ്യുന്നു
-                    const cleanImgUrl = cleanDriveLink(photo.imageUrl || '');
+                    const imgUrls = buildDriveImageUrls(photo.imageUrl || '');
+                    const mainImg = imgUrls[0] || 'https://placehold.co/600x400?text=Image+Not+Found';
                     grid.innerHTML += `
                         <div class="gallery-card">
-                            <img src="${cleanImgUrl}" alt="Gallery Image" onerror="this.src='https://placehold.co/600x400?text=Image+Not+Found'">
+                            <img src="${mainImg}" alt="Gallery Image" data-fallback="${encodeURIComponent(JSON.stringify(imgUrls))}" onerror="tryDriveFallback(this)">
                             <div class="card-details">
                                 <h4>${photo.caption}</h4>
                                 <p><i class="fa-solid fa-user"></i> By: ${photo.userName}</p>

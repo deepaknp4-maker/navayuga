@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>നവയുഗ ക്ലബ് - Comment</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        .comment-header {
+            background: white;
+            border-radius: 10px;
+            padding: 22px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            margin-bottom: 20px;
+        }
+        .comment-header h2 {
+            margin-bottom: 12px;
+            color: #0f5132;
+        }
+        .comment-header p {
+            color: #444;
+            line-height: 1.7;
+            margin-bottom: 10px;
+        }
+        .comment-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 12px;
+        }
+        .summary-chip {
+            background: #e9f7ef;
+            color: #0f5132;
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .comment-list {
+            display: grid;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .comment-card {
+            background: white;
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .comment-card p {
+            margin-bottom: 10px;
+            color: #333;
+            line-height: 1.7;
+        }
+        .comment-card .comment-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            color: #5b6770;
+            font-size: 13px;
+        }
+        .comment-form {
+            background: white;
+            border-radius: 10px;
+            padding: 22px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .comment-form textarea {
+            width: 100%;
+            min-height: 120px;
+            margin-bottom: 14px;
+            padding: 14px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            font-size: 15px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div id="header-placeholder"></div>
+    <main class="container">
+        <div class="comment-header" id="comment-header">
+            <h2>പോസ്റ്റ് & അഭിപ്രായങ്ങൾ</h2>
+            <p id="comment-post-content">പോസ്റ്റ് വിവരങ്ങൾ ഇവിടെ കാണിക്കും.</p>
+            <div class="comment-summary">
+                <div class="summary-chip"><i class="fa-solid fa-heart"></i> <span id="comment-like-count">0</span> Likes</div>
+                <div class="summary-chip"><i class="fa-solid fa-comments"></i> <span id="comment-count">0</span> Comments</div>
+            </div>
+        </div>
+
+        <div class="comment-list" id="comment-list"></div>
+
+        <div class="comment-form">
+            <h3>അഭിപ്രായം ചേർക്കൂ</h3>
+            <textarea id="new-comment" placeholder="ഇവിടെ നിങ്ങളുടെ അഭിപ്രായം എഴുതൂ..."></textarea>
+            <button class="btn" id="submit-comment">സമർപ്പിക്കുക</button>
+            <div id="comment-status" class="status-message"></div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>© 2026 നവയുഗ ക്ലബ്. എല്ലാ അവകാശങ്ങളും നിക്ഷിപ്തം.</p>
+            <p>Designed and developed by <strong>Deepak NP</strong></p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        function setCommentStatus(message, type) {
+            const box = document.getElementById('comment-status');
+            if (!box) return;
+            box.textContent = message;
+            box.className = 'status-message ' + (type === 'error' ? 'error' : 'success');
+            box.style.display = 'block';
+        }
+
+        function clearCommentStatus() {
+            const box = document.getElementById('comment-status');
+            if (!box) return;
+            box.style.display = 'none';
+            box.textContent = '';
+        }
+
+        function getQueryParam(name) {
+            const params = new URLSearchParams(window.location.search);
+            return params.get(name) || '';
+        }
+
+        async function fetchPostDetails(postId) {
+            try {
+                const res = await fetch(`${WEB_APP_URL}?action=getPosts`);
+                const posts = await res.json();
+                return posts.find(p => p.postId === postId);
+            } catch (err) {
+                console.error('fetchPostDetails', err);
+                return null;
+            }
+        }
+
+        async function loadComments(postId) {
+            const list = document.getElementById('comment-list');
+            if (!list) return;
+            list.innerHTML = '<p>അഭിപ്രായങ്ങൾ ലോഡ് ചെയ്യുന്നു...</p>';
+            try {
+                const res = await fetch(`${WEB_APP_URL}?action=getPostComments&postId=${encodeURIComponent(postId)}`);
+                const comments = await res.json();
+                if (!comments || comments.length === 0) {
+                    list.innerHTML = '<p>ഇവിടെ ഇപ്പോൾ അഭിപ്രായങ്ങൾ ഇല്ല.</p>';
+                    return;
+                }
+                list.innerHTML = '';
+                comments.forEach(comment => {
+                    const card = document.createElement('div');
+                    card.className = 'comment-card';
+                    card.innerHTML = `
+                        <p>${comment.comment || ''}</p>
+                        <div class="comment-meta">
+                            <span><i class="fa-solid fa-user"></i> ${comment.userName || 'അജ്ഞാതം'}</span>
+                            <span><i class="fa-solid fa-calendar-days"></i> ${comment.date || ''}</span>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+            } catch (err) {
+                console.error('loadComments error', err);
+                list.innerHTML = '<p style="color:red;">അഭിപ്രായങ്ങൾ ലോഡ് ചെയ്യാൻ പരാജയം.</p>';
+            }
+        }
+
+        function submitJsonpAction(action, params) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonpCallback_' + Math.random().toString(36).substring(2, 10);
+                window[callbackName] = function(result) {
+                    delete window[callbackName];
+                    resolve(result || { status: 'error', message: 'Invalid response' });
+                };
+                const script = document.createElement('script');
+                const query = new URLSearchParams(Object.assign({ action, callback: callbackName }, params));
+                query.append('t', Date.now());
+                script.src = `${WEB_APP_URL}?${query.toString()}`;
+                script.onload = function() { document.body.removeChild(script); };
+                script.onerror = function() {
+                    delete window[callbackName];
+                    reject(new Error('JSONP request failed'));
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                loadGlobalMenu();
+            } catch (err) { console.error(err); }
+
+            const postId = getQueryParam('postId');
+            if (!postId) {
+                setCommentStatus('Post ID not found.', 'error');
+                return;
+            }
+
+            const post = await fetchPostDetails(postId);
+            if (!post) {
+                setCommentStatus('Post not found.', 'error');
+                return;
+            }
+
+            document.getElementById('comment-post-content').textContent = post.content || 'Post content not available.';
+            document.getElementById('comment-like-count').textContent = post.likeCount || 0;
+            document.getElementById('comment-count').textContent = post.commentCount || 0;
+
+            await loadComments(postId);
+
+            const submitBtn = document.getElementById('submit-comment');
+            submitBtn.addEventListener('click', async () => {
+                clearCommentStatus();
+                const text = document.getElementById('new-comment').value.trim();
+                const userName = localStorage.getItem('loggedInUser');
+                if (!userName) {
+                    setCommentStatus('ദയവായി ആദ്യം ലോഗിൻ ചെയ്യുക.', 'error');
+                    return;
+                }
+                if (!text) {
+                    setCommentStatus('ദയവായി ഒരു അഭിപ്രായം എഴുതുക.', 'error');
+                    return;
+                }
+                try {
+                    const result = await submitJsonpAction('addComment', {
+                        commentId: 'CMT-' + Date.now(),
+                        postId: postId,
+                        userName: userName,
+                        comment: text
+                    });
+                    if (result.status === 'success') {
+                        document.getElementById('new-comment').value = '';
+                        setCommentStatus('അഭിപ്രായം ചേർത്തു.', 'success');
+                        await loadComments(postId);
+                        const currentCount = parseInt(document.getElementById('comment-count').textContent || '0', 10);
+                        document.getElementById('comment-count').textContent = currentCount + 1;
+                    } else {
+                        setCommentStatus(result.message || 'Comment failed.', 'error');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    setCommentStatus('അഭിപ്രായം അയക്കാനായില്ല: ' + err.message, 'error');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

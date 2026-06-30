@@ -46,6 +46,15 @@
 </footer>
 
 <script>
+    function formatEventDate(dateValue) {
+        if (!dateValue) return '';
+        const date = new Date(dateValue);
+        if (!isNaN(date.getTime())) {
+            return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+        return dateValue.toString().split(' ')[0] || dateValue;
+    }
+
     async function loadEvents() {
         const container = document.getElementById('events-container');
         try {
@@ -62,7 +71,7 @@
             notices.forEach(notice => {
                 container.innerHTML += `
                     <div class="event-row" style="background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <div class="event-date"><strong>${notice.date || ''}</strong></div>
+                        <div class="event-date"><strong>${formatEventDate(notice.date)}</strong></div>
                         <div class="event-details">
                             <h3 style="color: #0f5132;">${notice.title}</h3>
                             <p>${notice.content}</p>

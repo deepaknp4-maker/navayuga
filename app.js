@@ -27,7 +27,7 @@ function loadGlobalMenu() {
         authHTML = `
             <div style="display: flex; align-items: center; gap: 10px;">
                 <div class="user-profile" style="background: #198754; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 5px;">
-                    <i class="fa-solid fa-user"></i> <span>${loggedInUser}</span>
+                    <a href="profile.html" style="color:#ffffff; text-decoration: none;"><i class="fa-solid fa-user"></i> <span>${loggedInUser}</span></a>
                 </div>
                 <button class="header-logout" onclick="logoutUser(event)" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px;">
                     <i class="fa-solid fa-right-from-bracket"></i> ലോഗൗട്ട്

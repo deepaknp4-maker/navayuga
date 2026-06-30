@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="UTF-8">
+<title>My Profile</title>
+
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+.profile-posts {
+    margin-top: 30px;
+}
+
+.profile-posts h3 {
+    color: #0f5132;
+    margin-bottom: 15px;
+}
+
+.profile-post-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 18px;
+}
+
+.profile-post-card {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+}
+
+.profile-post-card img {
+    width: 100%;
+    height: 190px;
+    object-fit: cover;
+    display: block;
+}
+
+.profile-post-info {
+    padding: 12px;
+}
+
+.profile-post-info h4 {
+    color: #0f5132;
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.profile-post-meta {
+    color: #777;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="header-placeholder"></div>
+
+<main class="container">
+
+<div class="admin-box">
+
+<h2>👤 My Profile</h2>
+
+<p><b>Name:</b> <span id="uName"></span></p>
+<p><b>Phone:</b> <span id="uPhone"></span></p>
+<p><b>Password:</b> <span id="uPassword"></span></p>
+
+</div>
+
+<section class="profile-posts">
+<h3><i class="fa-solid fa-images"></i> My Posts</h3>
+<div class="profile-post-grid" id="user-posts-grid">
+<p style="grid-column: 1/-1; color:#888;">Loading your posts...</p>
+</div>
+</section>
+
+</main>
+
+<script src="app.js"></script>
+
+<script>
+document.getElementById("uName").innerText =
+localStorage.getItem("loggedInUser") || "Not logged in";
+
+document.getElementById("uPhone").innerText =
+localStorage.getItem("loggedInPhone") || "Not available";
+
+document.getElementById("uPassword").innerText =
+localStorage.getItem("loggedInPassword") || "Not available";
+
+function escapeHTML(value) {
+    return String(value || "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    }[char]));
+}
+
+async function loadUserPosts() {
+    const grid = document.getElementById("user-posts-grid");
+    const loggedInUser = localStorage.getItem("loggedInUser");
+
+    if (!grid) return;
+
+    if (!loggedInUser) {
+        grid.innerHTML = '<p style="grid-column: 1/-1; color:#888;">Please login to see your posts.</p>';
+        return;
+    }
+
+    try {
+        const response = await fetch(`${WEB_APP_URL}?action=gallery`);
+        const photos = await response.json();
+        const userPosts = (photos || []).filter((photo) =>
+            String(photo.userName || "").trim() === loggedInUser.trim()
+        );
+
+        if (userPosts.length === 0) {
+            grid.innerHTML = '<p style="grid-column: 1/-1; color:#888;">No posts found for your account.</p>';
+            return;
+        }
+
+        grid.innerHTML = userPosts.map((photo) => {
+            const imageUrl = cleanDriveLink(photo.imageUrl || "");
+            return `
+                <article class="profile-post-card">
+                    <img src="${escapeHTML(imageUrl)}" alt="My post" onerror="this.src='https://placehold.co/600x400?text=Image+Not+Found'">
+                    <div class="profile-post-info">
+                        <h4>${escapeHTML(photo.caption)}</h4>
+                        <div class="profile-post-meta">
+                            <span><i class="fa-solid fa-calendar-days"></i> ${escapeHTML(photo.date)}</span>
+                            <span><i class="fa-solid fa-heart"></i> ${escapeHTML(photo.likes || 0)}</span>
+                        </div>
+                    </div>
+                </article>`;
+        }).join("");
+    } catch (error) {
+        console.error("Profile posts load error:", error);
+        grid.innerHTML = '<p style="grid-column: 1/-1; color:red;">Could not load your posts.</p>';
+    }
+}
+
+loadUserPosts();
+</script>
+
+</body>
+</html>

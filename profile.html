@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="UTF-8">
+<title>My Profile</title>
+
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+
+<div id="header-placeholder"></div>
+
+<main class="container">
+
+<div class="admin-box">
+
+<h2>👤 My Profile</h2>
+
+<p><b>Name:</b> <span id="uName"></span></p>
+<p><b>Phone:</b> <span id="uPhone"></span></p>
+<p><b>Password:</b> <span id="uPassword"></span></p>
+
+</div>
+
+</main>
+
+<script src="app.js"></script>
+
+<script>
+document.getElementById("uName").innerText =
+localStorage.getItem("loggedInUser") || "Not logged in";
+
+document.getElementById("uPhone").innerText =
+localStorage.getItem("loggedInPhone") || "Not available";
+
+document.getElementById("uPassword").innerText =
+localStorage.getItem("loggedInPassword") || "Not available";
+</script>
+
+</body>
+</html>

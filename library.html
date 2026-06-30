@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>നവയുഗ ക്ലബ് - ലൈബ്രറി</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+
+    <div id="header-placeholder"></div>
+
+    <main class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+            <h2>നവയുഗ ഗ്രാമീണ വായനശാല</h2>
+            <p style="background: #0f5132; color: white; padding: 6px 15px; border-radius: 20px; font-size: 14px;">
+                <i class="fa-solid fa-book"></i> തത്സമയ പുസ്തക വിവരങ്ങൾ
+            </p>
+        </div>
+
+        <div class="book-list" id="live-book-list">
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 30px; color: #198754; margin-bottom: 10px;"></i>
+                <p>പുസ്തകങ്ങൾ ശേഖരിക്കുന്നു. ദയവായി കാത്തിരിക്കൂ...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+    <div class="footer-content">
+        <p>© 2026 നവയുഗ ക്ലബ്. എല്ലാ അവകാശങ്ങളും നിക്ഷിപ്തം.</p>
+        <p>Designed and developed by <strong>Deepak NP</strong></p>
+        
+        <div class="social-links">
+            <a href="#"><i class="fa-brands fa-facebook"></i></a>
+            <a href="#"><i class="fa-brands fa-instagram"></i></a>
+            <a href="#"><i class="fa-brands fa-youtube"></i></a>
+        </div>
+
+        <div class="app-downloads">
+            <p style="margin-top: 15px; font-size: 0.9em;">മൊബൈൽ ആപ്പ് ഡൗൺലോഡ് ചെയ്യൂ:</p>
+            <div class="store-links">
+                <a href="path/to/your-app.apk" class="app-btn" download>
+                    <i class="fa-brands fa-android"></i> Android
+                </a>
+                <a href="https://apps.apple.com/your-app-link" class="app-btn" target="_blank">
+                    <i class="fa-brands fa-apple"></i> iOS
+                </a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+    <script src="app.js"></script>
+<script>
+  window.addEventListener('load', () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then((reg) => {
+          console.log('Service Worker registered successfully!', reg);
+        })
+        .catch((err) => {
+          console.log('Service Worker registration failed:', err);
+        });
+    }
+  });
+</script>
+</body>
+</html>

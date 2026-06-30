@@ -47,7 +47,7 @@ function loadGlobalMenu() {
         <header>
             <div class="logo" style="display: flex; align-items: center; gap: 10px;">
                 <a href="index.html"><img src="${DRIVE_LOGO}" alt="Logo" style="height: 42px; width: 42px; border-radius: 50%; object-fit: cover;"></a>
-                <span><a href="index.html" style="color:#ffffff;">നവയുഗ ക്ലബ്</a></span>
+                <span><a href="index.html" style="color:#ffffff; text-decoration: none;">നവയുഗ ക്ലബ്</a></span>
             </div>
             <div class="menu-toggle" id="mobile-menu-btn"><i class="fa-solid fa-bars"></i></div>
             <nav id="nav-links-box">

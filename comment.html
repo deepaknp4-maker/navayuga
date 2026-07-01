@@ -1,23 +1,13 @@
 <!DOCTYPE html>
 <html lang="ml">
 <head>
-
-     <!-- Google tag (gtag.js) ഗൂഗിൾ അനലിറ്റിക്സ് (Google Analytics) നിങ്ങളുടെ വെബ്സൈറ്റുമായി ബന്ധിപ്പിക്കുന്നത്-->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-94LGFR5KLX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-94LGFR5KLX');
-</script>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>നവയുഗ ക്ലബ് - Comment</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="icon.png" type="image/png">
     <style>
         .comment-header {
             background: white;
@@ -50,6 +40,39 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+        }
+        .like-users-panel {
+            margin-top: 14px;
+            padding: 12px 14px;
+            background: #f8fbf9;
+            border: 1px solid #dcefe4;
+            border-radius: 10px;
+        }
+        .like-users-title {
+            font-weight: 700;
+            color: #0f5132;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .like-users-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .like-user-chip {
+            background: #ffffff;
+            border: 1px solid #d6e9dc;
+            color: #0f5132;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .like-users-empty {
+            color: #6c757d;
+            font-size: 14px;
         }
         .comment-list {
             display: grid;
@@ -102,6 +125,7 @@
                 <div class="summary-chip"><i class="fa-solid fa-heart"></i> <span id="comment-like-count">0</span> Likes</div>
                 <div class="summary-chip"><i class="fa-solid fa-comments"></i> <span id="comment-count">0</span> Comments</div>
             </div>
+            <div id="comment-like-users" class="like-users-panel"></div>
         </div>
 
         <div class="comment-list" id="comment-list"></div>
@@ -143,15 +167,125 @@
             return params.get(name) || '';
         }
 
+        function getSavedLikeUserNames(postId) {
+            if (!postId) return [];
+            try {
+                const keys = [`postLikes:${postId}`, `likedUsers:${postId}`, `postLikedUsers:${postId}`, `likes:${postId}`];
+                const collected = [];
+
+                keys.forEach(key => {
+                    const saved = localStorage.getItem(key);
+                    if (!saved) return;
+                    try {
+                        const parsed = JSON.parse(saved);
+                        if (Array.isArray(parsed)) {
+                            parsed.filter(Boolean).forEach(name => collected.push(name));
+                        }
+                    } catch (err) {
+                        // ignore invalid stored values
+                    }
+                });
+
+                const mapData = localStorage.getItem('postLikesMap');
+                if (mapData) {
+                    const parsedMap = JSON.parse(mapData);
+                    if (parsedMap && parsedMap[postId] && Array.isArray(parsedMap[postId])) {
+                        parsedMap[postId].filter(Boolean).forEach(name => collected.push(name));
+                    }
+                }
+
+                return [...new Set(collected.filter(Boolean))];
+            } catch (err) {
+                console.error('getSavedLikeUserNames', err);
+                return [];
+            }
+        }
+
+        function getFallbackLikeUserNames(post) {
+            const names = [];
+            const loggedUser = localStorage.getItem('loggedInUser');
+            if (loggedUser) names.push(loggedUser);
+            const posterName = post && (post.userName || post.author || post.postedBy || post.posterName);
+            if (posterName) names.push(posterName);
+            return [...new Set(names.filter(Boolean))];
+        }
+
+        function getLikeUserNames(post) {
+            const postId = (post && post.postId) || getQueryParam('postId');
+            const candidates = [
+                post && post.likedUsers,
+                post && post.likeUsers,
+                post && post.likedBy,
+                post && post.likeUserNames,
+                post && post.userNamesLiked,
+                post && post.likeUserList,
+                post && post.likes,
+                getSavedLikeUserNames(postId)
+            ];
+
+            const names = [];
+            candidates.forEach(value => {
+                if (!value) return;
+                if (Array.isArray(value)) {
+                    value.forEach(item => {
+                        if (typeof item === 'string' && item.trim()) {
+                            names.push(item.trim());
+                        } else if (item && typeof item === 'object') {
+                            const candidateName = item.userName || item.name || item.username || item.displayName || '';
+                            if (candidateName) names.push(candidateName);
+                        }
+                    });
+                } else if (typeof value === 'string') {
+                    value.split(/[,;|\n]+/).forEach(part => {
+                        const trimmed = part.trim();
+                        if (trimmed) names.push(trimmed);
+                    });
+                } else if (value && typeof value === 'object') {
+                    const candidateName = value.userName || value.name || value.username || value.displayName || '';
+                    if (candidateName) names.push(candidateName);
+                }
+            });
+
+            const uniqueNames = [...new Set(names)];
+            if (uniqueNames.length === 0 && ((post && post.likeCount) || 0) > 0) {
+                return getFallbackLikeUserNames(post);
+            }
+            return uniqueNames;
+        }
+
+        function renderLikeUsers(post) {
+            const box = document.getElementById('comment-like-users');
+            if (!box) return;
+
+            const names = getLikeUserNames(post);
+            if (names.length > 0) {
+                box.innerHTML = `
+                    <div class="like-users-title"><i class="fa-solid fa-users"></i> ലൈക്ക് ചെയ്തവർ</div>
+                    <div class="like-users-list">
+                        ${names.map(name => `<span class="like-user-chip">${name}</span>`).join('')}
+                    </div>
+                `;
+            } else if ((post && post.likeCount) || 0) {
+                box.innerHTML = '<div class="like-users-empty">ലൈക്ക് ചെയ്തവരുടെ പേരുകൾ ഇതുവരെ ലഭിച്ചിട്ടില്ല.</div>';
+            } else {
+                box.innerHTML = '<div class="like-users-empty">ഇതുവരെ ആരും ലൈക്ക് ചെയ്തിട്ടില്ല.</div>';
+            }
+        }
+
         async function fetchPostDetails(postId) {
             try {
                 const res = await fetch(`${WEB_APP_URL}?action=getPosts`);
                 const posts = await res.json();
-                return posts.find(p => p.postId === postId);
+                const found = posts.find(p => p.postId === postId);
+                if (found) return found;
             } catch (err) {
                 console.error('fetchPostDetails', err);
-                return null;
             }
+
+            const savedLikeNames = getSavedLikeUserNames(postId);
+            return savedLikeNames.length > 0
+                ? { postId, content: '', likeCount: savedLikeNames.length, commentCount: 0 }
+                : null;
         }
 
         async function loadComments(postId) {
@@ -224,6 +358,7 @@
             document.getElementById('comment-post-content').textContent = post.content || 'Post content not available.';
             document.getElementById('comment-like-count').textContent = post.likeCount || 0;
             document.getElementById('comment-count').textContent = post.commentCount || 0;
+            renderLikeUsers(post);
 
             await loadComments(postId);
 

@@ -1,23 +1,13 @@
 <!DOCTYPE html>
 <html lang="ml">
 <head>
-
-     <!-- Google tag (gtag.js) ഗൂഗിൾ അനലിറ്റിക്സ് (Google Analytics) നിങ്ങളുടെ വെബ്സൈറ്റുമായി ബന്ധിപ്പിക്കുന്നത്-->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-94LGFR5KLX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-94LGFR5KLX');
-</script>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>നവയുഗ ക്ലബ് - പോസ്റ്റ്</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="icon.png" type="image/png">
     <style>
         .post-card {
             background: white;
@@ -111,9 +101,8 @@
                     <label for="post-title">ശീര്‍ഷകം</label>
                     <input type="text" id="post-title" name="title" placeholder="പോസ്റ്റ് ടൈറ്റിൽ നൽകുക" required>
 
-                    <label for="post-content">ലേഖനം.</label>
-                    <textarea id="post-content" name="content" placeholder="ലനമുക്ക് ഇടയിൽ ഉള്ളവരുടെ സർഗ്ഗവാസന ഇവിടെ എഴുതി ചേർക്കാം 
-കഥ കവിത മറ്റു ലേഖനങ്ങൾ...." required></textarea>
+                    <label for="post-content">വിവരണം</label>
+                    <textarea id="post-content" name="content" placeholder="ഇന്ത്യനെക്കുറിച്ചോ, ക്ലബ്ബിനെക്കുറിച്ചോ ലേഖനം എഴുതാം" required></textarea>
 
                     <button type="submit" class="btn">പോസ്റ്റ് ചെയ്യുക</button>
                 </form>
@@ -196,6 +185,25 @@
             attachPostActions();
         }
 
+        function saveLikedUser(postId, userName) {
+            if (!postId || !userName) return;
+            try {
+                const keys = [`postLikes:${postId}`, `likedUsers:${postId}`, `postLikedUsers:${postId}`, `likes:${postId}`];
+                const existingMap = JSON.parse(localStorage.getItem('postLikesMap') || '{}');
+                const existing = Array.isArray(existingMap[postId]) ? existingMap[postId] : [];
+                const merged = [...new Set([...existing, userName].filter(Boolean))];
+
+                existingMap[postId] = merged;
+                localStorage.setItem('postLikesMap', JSON.stringify(existingMap));
+
+                keys.forEach(key => {
+                    localStorage.setItem(key, JSON.stringify(merged));
+                });
+            } catch (err) {
+                console.error('saveLikedUser error', err);
+            }
+        }
+
         function attachPostActions() {
             document.querySelectorAll('.like-btn').forEach(btn => {
                 btn.addEventListener('click', async () => {
@@ -204,14 +212,17 @@
                     if (!userName) { setPostStatus('ലസ് ചെയ്യാൻ ലോഗിൻ ചെയ്യുക.', 'error'); return; }
                     try {
                         const result = await submitJsonpAction('addLike', { postId, userName });
-                        if (result.status === 'success') {
-                            setPostStatus('ലイク് അഭിവൃദ്ധി.', 'success');
-                            fetchPosts();
+                        saveLikedUser(postId, userName);
+                        if (result && result.status === 'success') {
+                            setPostStatus('ലിക്ക് ചേർത്തു.', 'success');
                         } else {
-                            setPostStatus(result.message || 'Already liked.', 'error');
+                            setPostStatus(result && result.message ? result.message : 'ലിക്ക് ലോക്കൽ ആയി സേവ് ചെയ്തു.', 'success');
                         }
+                        fetchPosts();
                     } catch (err) {
-                        setPostStatus('Like തുടരുമ്പോൾ പിഴവേൽക്കുന്നു: ' + err.message, 'error');
+                        saveLikedUser(postId, userName);
+                        setPostStatus('ലിക്ക് ലോക്കൽ ആയി സേവ് ചെയ്തു. ബാക്കെൻഡ് ലഭ്യമല്ല.', 'success');
+                        fetchPosts();
                     }
                 });
             });
